@@ -38,4 +38,22 @@ impl VideoDecoder {
         let seconds = pts as f64 * self.time_base.numerator() as f64 / self.time_base.denominator() as f64;
         Duration::from_secs_f64(seconds)
     }
+
+    /// フレームを RGB24 に変換
+    fn convert_to_rgb24(&self, frame: &ffmpeg::frame::Video) -> Result<ffmpeg::frame::Video> {
+        let mut converter = ffmpeg::software::scaling::context::Context::get(
+            frame.format(),
+            frame.width(),
+            frame.height(),
+            ffmpeg::format::Pixel::RGB24,
+            frame.width(),
+            frame.height(),
+            ffmpeg::software::scaling::flag::Flags::BILINEAR,
+        )?;
+
+        let mut rgb_frame = ffmpeg::frame::Video::empty();
+        converter.run(frame, &mut rgb_frame)?;
+
+        Ok(rgb_frame)
+    }
 }
