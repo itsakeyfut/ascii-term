@@ -148,6 +148,46 @@ impl VideoFrame {
         }
     }
 
+    /// OpenCV の Mat に変換
+    pub fn to_opencv_mat(&self) -> Result<Mat> {
+        let mat_type = match self.format {
+            FrameFormat::BGR8 => opencv::core::CV_8UC3,
+            FrameFormat::BGRA8 => opencv::core::CV_8UC4,
+            FrameFormat::RGB8 => opencv::core::CV_8UC3,
+            FrameFormat::RGBA8 => opencv::core::CV_8UC4,
+            FrameFormat::Gray8 => opencv::core::CV_8UC1,
+            _ => return Err(MediaError::Video("Unsupported format for OpenCV Mat".to_string())),
+        };
+
+        let mut mat = Mat::new_rows_cols_with_default(
+            self.height as i32,
+            self.width as i32,
+            mat_type,
+            opencv::core::Scalar::all(0.0),
+        )?;
+
+        // データをコピー
+        let mat_data = mat.data_bytes_mut()?;
+
+        if self.format == FrameFormat::RGB8 || self.format == FrameFormat::RGBA8 {
+            // RGB から BGR に変換
+            let channels = if self.format == FrameFormat::RGB8 { 3 } else { 4 };
+            for i in 0..(self.data.len() / channels) {
+                let base_idx = i * channels;
+                mat_data[base_idx] = self.data[base_idx + 2];     // B
+                mat_data[base_idx + 1] = self.data[base_idx + 1]; // G
+                mat_data[base_idx + 2] = self.data[base_idx];     // R
+                if channels == 4 {
+                    mat_data[base_idx + 3] = self.data[base_idx + 3]; // A
+                }
+            }
+        } else {
+            mat_data.copy_from_slice(&self.data);
+        }
+
+        Ok(mat)
+    }
+
     /// FFmpeg のピクセルフォーマットを変換
     fn convert_ffmpeg_format(format: ffmpeg_next::format::Pixel) -> Result<FrameFormat> {
         match format {
