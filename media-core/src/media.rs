@@ -55,6 +55,25 @@ pub struct MediaFile {
 }
 
 impl MediaFile {
+    /// ファイルパスからメディアファイルを開く
+    pub fn open<P: AsRef<Path>>(path: P) -> Result<Self> {
+        let path_str = path.as_ref().to_str()
+            .ok_or_else(|| MediaError::InvalidFormat("Invalid path".to_string()))?;
+
+        let format_context = ffmpeg::format::input(&path_str)
+            .map_err(|e| MediaError::Ffmpeg(e))?;
+
+        let info = Self::extract_media_info(&format_context)?;
+        let media_type = Self::determine_media_type(&info);
+
+        Ok(MediaFile {
+            path: path_str.to_string(),
+            media_type,
+            info,
+            format_context,
+        })
+    }
+
     /// メディア情報を抽出
     fn extract_media_info(format_context: &ffmpeg::format::context::Input) -> Result<MediaInfo> {
         let mut info = MediaInfo::default();
