@@ -142,4 +142,14 @@ impl MediaFile {
             .streams()
             .best(ffmpeg::media::Type::Audio)
     }
+
+    /// フォーマットコンテクストへの参照を取得
+    pub fn format_context(&self) -> &ffmpeg::format::context::Input {
+        &self.format_context
+    }
+
+    /// フォーマットコンテクストの可変参照を取得
+    pub fn format_context_mut(&mut self) -> &mut ffmpeg::format::context::Input {
+        &mut self.format_context
+    }
 }
