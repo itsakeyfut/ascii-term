@@ -53,3 +53,13 @@ pub struct MediaFile {
     pub info: MediaInfo,
     format_context: ffmpeg::format::context::Input,
 }
+
+impl MediaFile {
+    fn determine_media_type(info: &MediaInfo) -> MediaType {
+        match (info.has_video, info.has_audio) {
+            (true, _) => MediaType::Video,
+            (false, true) => MediaType::Audio,
+            (false, false) => MediaType::Unknown,
+        }
+    }
+}
