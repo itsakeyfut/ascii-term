@@ -55,6 +55,7 @@ pub struct MediaFile {
 }
 
 impl MediaFile {
+    /// メディアタイプを判定
     fn determine_media_type(info: &MediaInfo) -> MediaType {
         match (info.has_video, info.has_audio) {
             (true, _) => MediaType::Video,
