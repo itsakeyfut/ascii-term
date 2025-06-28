@@ -128,4 +128,11 @@ impl MediaFile {
             (false, false) => MediaType::Unknown,
         }
     }
+
+    /// ビデオストリームを取得
+    pub fn video_stream(&self) -> Option<ffmpeg::Stream> {
+        self.format_context
+            .streams()
+            .best(ffmpeg::media::Type::Video)
+    }
 }
