@@ -4,3 +4,34 @@ version = "0.1.0"
 edition = "2024"
 
 [dependencies]
+# FFmpeg関連
+ffmpeg-next = { workspace = true }
+ffmpeg-sys-next = { workspace = true }
+
+# OpenCV
+opencv = { workspace = true }
+
+# 画像処理
+image = { workspace = true }
+fast_image_resize = { workspace = true }
+
+# オーディオ
+rodio = { workspace = true }
+
+# 非同期・並行処理
+tokio = { workspace = true }
+crossbeam-channel = { workspace = true }
+
+# エラーハンドリング
+anyhow = { workspace = true }
+thiserror = { workspace = true }
+
+# シリアライゼーション
+serde = { workspace = true }
+serde_json = { workspace = true }
+
+# ファイル操作
+tempfile = { workspace = true }
+
+# 数値計算
+num = { workspace = true }
