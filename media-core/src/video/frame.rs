@@ -84,6 +84,70 @@ impl VideoFrame {
         Ok(Self::new(data, width, height, format, timestamp, pts))
     }
 
+    /// image クレートの DynamicImage に変換
+    pub fn to_dynamic_image(&self) -> Result<DynamicImage> {
+        match self.format {
+            FrameFormat::RGB8 => {
+                let img = ImageBuffer::<image::Rgb<u8>, _>::from_raw(
+                    self.width,
+                    self.height,
+                    self.data.clone(),
+                ).ok_or_else(|| MediaError::Image(image::ImageError::Parameter(
+                    image::error::ParameterError::from_kind(
+                        image::error::ParameterErrorKind::DimensionMismatch
+                    )
+                )))?;
+                Ok(DynamicImage::ImageRgb8(img))
+            }
+            FrameFormat::RGBA8 => {
+                let img = ImageBuffer::<image::Rgba<u8>, _>::from_raw(
+                    self.width,
+                    self.height,
+                    self.data.clone(),
+                ).ok_or_else(|| MediaError::Image(image::ImageError::Parameter(
+                    image::error::ParameterError::from_kind(
+                        image::error::ParameterErrorKind::DimensionMismatch
+                    )
+                )))?;
+                Ok(DynamicImage::ImageRgba8(img))
+            }
+            FrameFormat::BGR8 => {
+                // BGR を RGB に変換
+                let mut rgb_data = Vec::with_capacity(self.data.len());
+                for chunk in self.data.chunks(3) {
+                    if chunk.len() == 3 {
+                        rgb_data.push(chunk[2]); // R
+                        rgb_data.push(chunk[1]); // G
+                        rgb_data.push(chunk[0]); // B
+                    }
+                }
+                let img = ImageBuffer::<image::Rgb<u8>, _>::from_raw(
+                    self.width,
+                    self.height,
+                    rgb_data,
+                ).ok_or_else(|| MediaError::Image(image::ImageError::Parameter(
+                    image::error::ParameterError::from_kind(
+                        image::error::ParameterErrorKind::DimensionMismatch
+                    )
+                )))?;
+                Ok(DynamicImage::ImageRgb8(img))
+            }
+            FrameFormat::Gray8 => {
+                let img = ImageBuffer::<image::Luma<u8>, _>::from_raw(
+                    self.width,
+                    self.height,
+                    self.data.clone(),
+                ).ok_or_else(|| MediaError::Image(image::ImageError::Parameter(
+                    image::error::ParameterError::from_kind(
+                        image::error::ParameterErrorKind::DimensionMismatch
+                    )
+                )))?;
+                Ok(DynamicImage::ImageLuma8(img))
+            }
+            _ => Err(MediaError::Video("Unsupported format for conversion to DynamicImage".to_string())),
+        }
+    }
+
     /// FFmpeg のピクセルフォーマットを変換
     fn convert_ffmpeg_format(format: ffmpeg_next::format::Pixel) -> Result<FrameFormat> {
         match format {
