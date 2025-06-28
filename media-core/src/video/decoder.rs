@@ -13,3 +13,23 @@ pub struct VideoDecoder {
     time_base: ffmpeg::Rational,
     frame_count: u64,
 }
+
+impl VideoDecoder {
+    /// メディアファイルからビデオデコーダーを作成
+    pub fn new(media_file: &MediaFile) -> Result<Self> {
+        let video_stream = media_file
+            .video_stream()
+            .ok_or_else(|| MediaError::Video("No video stream found".to_string()))?;
+
+        let decoder = ffmpeg::codec::context::Context::from_parameters(video_stream.parameters())?
+            .decoder()
+            .video()?;
+
+        Ok(Self {
+            decoder,
+            stream_index: video_stream.index(),
+            time_base: video_stream.time_base(),
+            frame_count: 0,
+        })
+    }
+}
