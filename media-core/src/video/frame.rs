@@ -26,3 +26,24 @@ pub struct VideoFrame {
     pub timestamp: Duration,
     pub pts: i64,
 }
+
+impl VideoFrame {
+    /// 新しいビデオフレームを作成
+    pub fn new(
+        data: Vec<u8>,
+        width: u32,
+        height: u32,
+        format: FrameFormat,
+        timestamp: Duration,
+        pts: i64,
+    ) -> Self {
+        Self {
+            data,
+            width,
+            height,
+            format,
+            timestamp,
+            pts,
+        }
+    }
+}
