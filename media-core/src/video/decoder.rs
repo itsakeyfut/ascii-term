@@ -32,4 +32,10 @@ impl VideoDecoder {
             frame_count: 0,
         })
     }
+
+    /// PTS を時間に変換
+    fn pts_to_duration(&self, pts: i64) -> Duration {
+        let seconds = pts as f64 * self.time_base.numerator() as f64 / self.time_base.denominator() as f64;
+        Duration::from_secs_f64(seconds)
+    }
 }
