@@ -63,6 +63,27 @@ impl VideoFrame {
         Ok(Self::new(data, width, height, format, timestamp, pts))
     }
 
+    /// OpenCV の Mat から VideoFrame を作成
+    pub fn from_opencv_mat(mat: &Mat, timestamp: Duration, pts: i64) -> Result<Self> {
+        let size = mat.size()?;
+        let width = size.width as u32;
+        let height = size.height as u32;
+
+        // Mat のタイプからフォーマットを指定
+        let mat_type = mat.typ();
+        let format = match mat_type {
+            opencv::core::CV_8UC3 => FrameFormat::BGR8,
+            opencv::core::CV_8UC4 => FrameFormat::BGRA8,
+            opencv::core::CV_8UC1 => FrameFormat::Gray8,
+            _ => return Err(MediaError::Video(format!("Unsupported mat type: {}", mat_type))),
+        };
+
+        // データをコピー
+        let data = mat.data_bytes()?.to_vec();
+
+        Ok(Self::new(data, width, height, format, timestamp, pts))
+    }
+
     /// FFmpeg のピクセルフォーマットを変換
     fn convert_ffmpeg_format(format: ffmpeg_next::format::Pixel) -> Result<FrameFormat> {
         match format {
