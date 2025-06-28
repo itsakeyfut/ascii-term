@@ -15,3 +15,14 @@ pub enum FrameFormat {
     YUV420P,
     Gray8,
 }
+
+/// ビデオフレームを表現する構造体
+#[derive(Debug, Clone)]
+pub struct VideoFrame {
+    pub data: Vec<u8>,
+    pub width: u32,
+    pub height: u32,
+    pub format: FrameFormat,
+    pub timestamp: Duration,
+    pub pts: i64,
+}
