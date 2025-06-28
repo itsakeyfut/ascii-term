@@ -188,6 +188,51 @@ impl VideoFrame {
         Ok(mat)
     }
 
+    /// リサイズ
+    pub fn resize(&self, new_width: u32, new_height: u32) -> Result<Self> {
+        let dynamic_img = self.to_dynamic_image()?;
+        let resized = dynamic_img.resize_exact(
+            new_width,
+            new_height,
+            image::imageops::FilterType::Lanczos3,
+        );
+
+        // リサイズされた画像から VideoFrame を作成
+        match resized {
+            DynamicImage::ImageRgb8(img) => {
+                Ok(Self::new(
+                    img.into_raw(),
+                    new_width,
+                    new_height,
+                    FrameFormat::RGB8,
+                    self.timestamp,
+                    self.pts,
+                ))
+            }
+            DynamicImage::ImageRgba8(img) => {
+                Ok(Self::new(
+                    img.into_raw(),
+                    new_width,
+                    new_height,
+                    FrameFormat::RGBA8,
+                    self.timestamp,
+                    self.pts,
+                ))
+            }
+            DynamicImage::ImageLuma8(img) => {
+                Ok(Self::new(
+                    img.into_raw(),
+                    new_width,
+                    new_height,
+                    FrameFormat::Gray8,
+                    self.timestamp,
+                    self.pts,
+                ))
+            }
+            _ => Err(MediaError::Video("Unsupported image format after resize".to_string()))
+        }
+    }
+
     /// FFmpeg のピクセルフォーマットを変換
     fn convert_ffmpeg_format(format: ffmpeg_next::format::Pixel) -> Result<FrameFormat> {
         match format {
