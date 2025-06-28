@@ -47,6 +47,22 @@ impl VideoFrame {
         }
     }
 
+    /// FFmpeg のフレームから VideoFrame を作成
+    pub fn from_ffmpeg_frame(frame: &ffmpeg_next::frame::Video, timestamp: Duration, pts: i64) -> Result<Self> {
+        let width = frame.width();
+        let height = frame.height();
+        let format = Self::convert_ffmpeg_format(frame.format())?;
+
+        // フレームデータをコピー
+        let mut data = Vec::new();
+        for plane in 0..frame.planes() {
+            let plane_data = frame.data(plane);
+            data.extend_from_slice(plane_data);
+        }
+
+        Ok(Self::new(data, width, height, format, timestamp, pts))
+    }
+
     /// FFmpeg のピクセルフォーマットを変換
     fn convert_ffmpeg_format(format: ffmpeg_next::format::Pixel) -> Result<FrameFormat> {
         match format {
