@@ -111,4 +111,21 @@ impl VideoDecoder {
 
         Ok(rgb_frame)
     }
+
+    /// デコーダーの情報を取得
+    pub fn width(&self) -> u32 {
+        self.decoder.width()
+    }
+
+    pub fn height(&self) -> u32 {
+        self.decoder.height()
+    }
+
+    pub fn frame_count(&self) -> u64 {
+        self.frame_count
+    }
+
+    pub fn codec_name(&self) -> String {
+        format!("{:?}", self.decoder.id())
+    }
 }
