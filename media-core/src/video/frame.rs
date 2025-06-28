@@ -46,4 +46,17 @@ impl VideoFrame {
             pts,
         }
     }
+
+    /// FFmpeg のピクセルフォーマットを変換
+    fn convert_ffmpeg_format(format: ffmpeg_next::format::Pixel) -> Result<FrameFormat> {
+        match format {
+            ffmpeg_next::format::Pixel::RGB24 => Ok(FrameFormat::RGB8),
+            ffmpeg_next::format::Pixel::RGBA => Ok(FrameFormat::RGBA8),
+            ffmpeg_next::format::Pixel::BGR24 => Ok(FrameFormat::BGR8),
+            ffmpeg_next::format::Pixel::BGRA => Ok(FrameFormat::BGRA8),
+            ffmpeg_next::format::Pixel::YUV420P => Ok(FrameFormat::YUV420P),
+            ffmpeg_next::format::Pixel::GRAY8 => Ok(FrameFormat::Gray8),
+            _ => Err(MediaError::UnsupportedCodec(format!("Unsupported pixel format: {:?}", format))),
+        }
+    }
 }
