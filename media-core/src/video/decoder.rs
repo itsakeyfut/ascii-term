@@ -33,6 +33,36 @@ impl VideoDecoder {
         })
     }
 
+    /// 次のフレームをデコード
+    pub fn decode_next_frame(&mut self, packet: &ffmpeg::Packet) -> Result<Option<VideoFrame>> {
+        if packet.stream() != self.stream_index {
+            return Ok(None);
+        }
+
+        self.decoder.send_packet(packet)?;
+
+        let mut frame = ffmpeg::frame::Video::empty();
+        let eagain = ffmpeg::ffi::AVERROR(ffmpeg::ffi::EAGAIN);
+        match self.decoder.receive_frame(&mut frame) {
+            Ok(()) => {
+                let timestamp = self.pts_to_duration(frame.pts().unwrap_or(0));
+                let pts = frame.pts().unwrap_or(0);
+
+                // フレームを RGB24 に変換
+                let rgb_frame = self.convert_to_rgb24(&frame)?;
+                let video_frame = VideoFrame::from_ffmpeg_frame(&rgb_frame, timestamp, pts)?;
+
+                self.frame_count += 1;
+                Ok(Some(video_frame))
+            }
+            Err(ffmpeg::Error::Other { errno }) if errno == eagain => {
+                // もっとデータが必要
+                Ok(None)
+            }
+            Err(e) => Err(MediaError::Ffmpeg(e)),
+        }
+    }
+
     /// PTS を時間に変換
     fn pts_to_duration(&self, pts: i64) -> Duration {
         let seconds = pts as f64 * self.time_base.numerator() as f64 / self.time_base.denominator() as f64;
