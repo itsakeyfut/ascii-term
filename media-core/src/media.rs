@@ -135,4 +135,11 @@ impl MediaFile {
             .streams()
             .best(ffmpeg::media::Type::Video)
     }
+
+    /// オーディオストリームを取得
+    pub fn audio_stream(&self) -> Option<ffmpeg::Stream> {
+        self.format_context
+            .streams()
+            .best(ffmpeg::media::Type::Audio)
+    }
 }
