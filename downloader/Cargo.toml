@@ -1,0 +1,26 @@
+[package]
+name = "downloader"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+# 非同期処理
+tokio = { workspace = true }
+
+# エラーハンドリング
+anyhow = { workspace = true }
+thiserror = { workspace = true }
+
+# HTTP
+reqwest = { workspace = true }
+
+# ファイル操作
+tempfile = { workspace = true }
+url = { workspace = true }
+
+# JSON処理
+serde = { workspace = true }
+serde_json = { workspace = true }
+
+# YouTube ダウンローダー（オプション）
+youtube_dl = { workspace = true }

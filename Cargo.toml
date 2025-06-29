@@ -2,7 +2,7 @@
 members = [
     "media-core",
     "terminal-player",
-    # "downloader"
+    "downloader"
 ]
 
 [workspace.dependencies]
