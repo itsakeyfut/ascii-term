@@ -111,4 +111,30 @@ impl AudioPlayer {
     pub fn is_muted(&self) -> bool {
         self.is_muted.load(Ordering::Relaxed)
     }
+
+    /// 再生位置を先頭に戻す
+    /// 
+    /// 簡易実装のため、見直しが必要
+    pub fn seek_to_start(&mut self, file_path: &str) -> Result<()> {
+        // 現在の音源をクリア
+        self.sink.stop();
+
+        // 新しい音源を読み込み
+        let file = File::open(file_path)
+            .map_err(|e| anyhow::anyhow!("Failed to open audio file: {}", e))?;
+        let source = Decoder::new(BufReader::new(file))
+            .map_err(|e| anyhow::anyhow!("Failed to decode audio file: {}", e))?;
+
+        // 音源を Sink に追加
+        self.sink.append(source);
+
+        // 音量とミュート状態を復元
+        if self.is_muted.load(Ordering::Relaxed) {
+            self.sink.set_volume(0.0);
+        } else {
+            self.sink.set_volume(self.original_volume);
+        }
+
+        Ok(())
+    }
 }
