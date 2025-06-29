@@ -13,3 +13,33 @@ pub struct AudioPlayer {
     is_muted: Arc<AtomicBool>,
     original_volume: f32,
 }
+
+impl AudioPlayer {
+    /// 新しいオーディオプレイヤーを作成
+    pub fn new(file_path: &str) -> Result<Self> {
+        // オーディオストリームを初期化
+        let (_stream, stream_handle) = OutputStream::try_default()
+            .map_err(|e| anyhow::anyhow!("Failed to initialize audio stream: {}", e))?;
+
+        // Sink を作成
+        let sink = Sink::try_new(&stream_handle)
+            .map_err(|e| anyhow::anyhow!("Failed to create audio sink: {}", e))?;
+
+        // ファイルを開いてデコーダーを作成
+        let file = File::open(file_path)
+            .map_err(|e| anyhow::anyhow!("Failed to open audio file: {}", e))?;
+        let source = Decoder::new(BufReader::new(file))
+            .map_err(|e| anyhow::anyhow!("Failed to decode audio file: {}", e))?;
+
+        // 音源を Sink に追加
+        sink.append(source);
+        sink.pause(); // 最初は一時停止状態
+
+        Ok(Self {
+            _stream,
+            sink,
+            is_muted: Arc::new(AtomicBool::new(false)),
+            original_volume: 1.0,
+        })
+    }
+}
