@@ -57,4 +57,10 @@ impl AsciiRenderer {
     pub fn update_config(&mut self, config: RenderConfig) {
         self.config = config;
     }
+
+    /// ターミナルサイズに基づいて解像度を更新
+    pub fn update_resolution(&mut self, width: u16, height: u16) {
+        self.config.target_width = (width / self.config.width_modifiers as u16) as u32;
+        self.config.target_height = height as u32;
+    }
 }
