@@ -12,7 +12,7 @@ fn main() {
             configure_windows();
         }
         "macos" => {
-            unimplemented!()
+            configure_macos();
         }
         "linux" => {
             unimplemented!()
@@ -32,4 +32,16 @@ fn configure_windows() {
         println!("cargo:rustc-link-search=native={}\\installed\\x64-windows\\lib",
                 env::var("VCPKG_ROOT").unwrap());
     }
+}
+
+fn configure_macos() {
+    // Homebrew のパスを追加
+    println!("cargo:rustc-link-search=native=/opt/homebrew/lib");
+    println!("cargo:rustc-link-search=native=/usr/local/lib");
+
+    // macOS 固有のフレームワーク
+    println!("cargo:rustc-link-lib=framework=CoreFoundation");
+    println!("cargo:rustc-link-lib=framework=CoreMedia");
+    println!("cargo:rustc-link-lib=framework=CoreVideo");
+    println!("cargo:rustc-link-lib=framework=AVFoundation");
 }
