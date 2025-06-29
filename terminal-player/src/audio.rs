@@ -79,6 +79,15 @@ impl AudioPlayer {
         Ok(())
     }
 
+    /// 現在の音量を取得
+    pub fn volume(&self) -> f32 {
+        if self.is_muted.load(Ordering::Relaxed) {
+            0.0
+        } else {
+            self.original_volume
+        }
+    }
+
     /// ミュート
     pub fn mute(&mut self) -> Result<()> {
         self.is_muted.store(true, Ordering::Relaxed);
