@@ -68,4 +68,9 @@ impl AsciiRenderer {
     pub fn set_char_map(&mut self, index: u8) {
         self.config.char_map_index = index;
     }
+
+    /// グレースケールモードを切り替え
+    pub fn set_grayscale(&mut self, grayscale: bool) {
+        self.config.grayscale = grayscale;
+    }
 }
