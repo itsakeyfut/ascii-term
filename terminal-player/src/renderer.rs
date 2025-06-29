@@ -73,4 +73,46 @@ impl AsciiRenderer {
     pub fn set_grayscale(&mut self, grayscale: bool) {
         self.config.grayscale = grayscale;
     }
+
+    /// 画像をリサイズ
+    fn resize_image(&mut self, image: &DynamicImage) -> Result<DynamicImage> {
+        let src_width = image.width();
+        let src_height = image.height();
+
+        if src_width == self.config.target_width && src_height == self.config.target_height {
+            return Ok(image.clone());
+        }
+
+        // RGB画像に変換
+        let rgb_image = image.to_rgb8();
+
+        // リサイズ
+        let src_image = fr::images::Image::from_vec_u8(
+            src_width,
+            src_height,
+            rgb_image.into_raw(),
+            fr::PixelType::U8x3,
+        )?;
+
+        let mut dst_image = fr::images::Image::new(
+            self.config.target_width,
+            self.config.target_height,
+            fr::PixelType::U8x3,
+        );
+
+        self.resizer.resize(
+            &src_image,
+            &mut dst_image,
+            &fr::ResizeOptions::new().resize_alg(fr::ResizeAlg::Convolution(fr::FilterType::Lanczos3)),
+        )?;
+
+        let resized_data = dst_image.into_vec();
+        let resized_buffer = ImageBuffer::from_raw(
+            self.config.target_width,
+            self.config.target_height,
+            resized_data,
+        ).ok_or_else(|| anyhow::anyhow!("Failed to create image buffer"))?;
+
+        Ok(DynamicImage::ImageRgb8(resized_buffer))
+    }
 }
