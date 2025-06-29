@@ -147,3 +147,52 @@ impl AudioPlayer {
         Ok(())
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    // テスト用のダミープレイヤーを作成
+    fn create_dummy_player() -> AudioPlayer {
+        // テスト環境では実際の音声ファイルが利用できない可能性があるため、
+        // ここではダミーの実装を作成
+        let (_stream, stream_handle) = OutputStream::try_default().unwrap();
+        let sink = Sink::try_new(&stream_handle).unwrap();
+
+        AudioPlayer {
+            _stream,
+            sink,
+            is_muted: Arc::new(AtomicBool::new(false)),
+            original_volume: 1.0,
+        }
+    }
+
+    #[test]
+    fn test_volume_control() {
+        let mut player = create_dummy_player();
+
+        assert!(player.set_volume(0.5).is_ok());
+        assert_eq!(player.volume(), 0.5);
+        
+        assert!(player.mute().is_ok());
+        assert_eq!(player.volume(), 0.0);
+        assert!(player.is_muted());
+
+        assert!(player.unmute().is_ok());
+        assert_eq!(player.volume(), 0.5);
+        assert!(!player.is_muted());
+    }
+
+    #[test]
+    fn test_mute_toggle() {
+        let mut player = create_dummy_player();
+
+        assert!(!player.is_muted());
+
+        assert!(player.toggle_mute().is_ok());
+        assert!(player.is_muted());
+
+        assert!(player.toggle_mute().is_ok());
+        assert!(!player.is_muted());
+    }
+}
