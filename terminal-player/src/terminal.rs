@@ -45,7 +45,7 @@ impl Terminal {
         Ok(())
     }
 
-    /// ターミナルの実行を開始
+    /// ターミナルをクリーンアップ
     fn cleanup_terminal(&self) -> Result<()> {
         execute!(
             stdout(),
