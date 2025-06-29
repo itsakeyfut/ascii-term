@@ -115,4 +115,43 @@ impl AsciiRenderer {
 
         Ok(DynamicImage::ImageRgb8(resized_buffer))
     }
+
+    /// RGB画像を ASCII 文字とカラー情報に変換
+    fn image_to_ascii_with_color(&self, rgb_image: &ImageBuffer<image::Rgb<u8>, Vec<u8>>) -> (String, Vec<u8>) {
+        let char_map = char_maps::get_char_map(self.config.char_map_index);
+        let (width, height) = rgb_image.dimensions();
+
+        let mut ascii_text = String::with_capacity((width * height) as usize + height as usize);
+        let mut rgb_data = Vec::with_capacity((width * height * 3) as usize);
+
+        for y in 0..height {
+            for x in 0..width {
+                let pixel = rgb_image.get_pixel(x, y);
+                let [r, g, b] = pixel.0;
+
+                // 輝度計算 (ITU-R BT.709)
+                let luminance = (0.2126 * r as f32 + 0.7152 * g as f32 + 0.0722 * b as f32) as u8;
+
+                // 文字にマッピング
+                let ch = char_maps::luminance_to_char(luminance, char_map);
+                ascii_text.push(ch);
+
+                // RGB情報を保存
+                rgb_data.push(r);
+                rgb_data.push(g);
+                rgb_data.push(b);
+            }
+
+            // 改行を追加（オプション）
+            if self.config.add_newlines && y < height - 1 {
+                ascii_text.push('\r');
+                ascii_text.push('\n');
+
+                // 改行文字分のRGBデータを追加（黒で埋める）
+                rgb_data.extend_from_slice(&[0, 0, 0, 0, 0, 0]);
+            }
+        }
+
+        (ascii_text, rgb_data)
+    }
 }
