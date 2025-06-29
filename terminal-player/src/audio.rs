@@ -66,4 +66,16 @@ impl AudioPlayer {
         self.sink.stop();
         Ok(())
     }
+
+    /// 音量を設定 (0.0 - 1.0)
+    pub fn set_volume(&mut self, volume: f32) -> Result<()> {
+        let clamped_volume = volume.clamp(0.0, 1.0);
+        self.original_volume = clamped_volume;
+
+        if !self.is_muted.load(Ordering::Relaxed) {
+            self.sink.set_volume(clamped_volume);
+        }
+
+        Ok(())
+    }
 }
