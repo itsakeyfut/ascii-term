@@ -101,4 +101,9 @@ impl AudioPlayer {
             self.mute()
         }
     }
+
+    /// 再生中かどうか
+    pub fn is_playing(&self) -> bool {
+        !self.sink.is_paused()
+    }
 }
