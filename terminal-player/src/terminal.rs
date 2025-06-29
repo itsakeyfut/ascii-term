@@ -36,4 +36,17 @@ impl Terminal {
             last_frame: None,
         })
     }
+
+    /// ターミナルの実行を開始
+    fn cleanup_terminal(&self) -> Result<()> {
+        execute!(
+            stdout(),
+            ResetColor,
+            Clear(ClearType::All),
+            Show,
+            LeaveAlternateScreen
+        )?;
+        terminal::disable_raw_mode()?;
+        Ok(())
+    }
 }
