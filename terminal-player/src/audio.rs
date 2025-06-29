@@ -60,4 +60,10 @@ impl AudioPlayer {
         self.sink.play();
         Ok(())
     }
+
+    /// 再生を停止
+    pub fn stop(&mut self) -> Result<()> {
+        self.sink.stop();
+        Ok(())
+    }
 }
