@@ -48,4 +48,10 @@ impl AudioPlayer {
         self.sink.play();
         Ok(())
     }
+
+    /// 再生を一時停止
+    pub fn pause(&mut self) -> Result<()> {
+        self.sink.pause();
+        Ok(())
+    }
 }
