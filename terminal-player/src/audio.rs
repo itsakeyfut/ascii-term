@@ -78,4 +78,11 @@ impl AudioPlayer {
 
         Ok(())
     }
+
+    /// ミュート
+    pub fn mute(&mut self) -> Result<()> {
+        self.is_muted.store(true, Ordering::Relaxed);
+        self.sink.set_volume(0.0);
+        Ok(())
+    }
 }
