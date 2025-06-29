@@ -74,6 +74,14 @@ impl AsciiRenderer {
         self.config.grayscale = grayscale;
     }
 
+    /// VideoFrame を ASCII アートにレンダリング
+    pub fn render_video_frame(&mut self, frame: &VideoFrame) -> Result<RenderedFrame> {
+        let dynamic_image = frame.to_dynamic_image()
+            .map_err(|e| anyhow::anyhow!("Failed to convert to frame to image: {}", e))?;
+
+        self.render_image(&dynamic_image)
+    }
+
     /// DynamicImage を ASCII アートにレンダリング
     pub fn render_image(&mut self, image: &DynamicImage) -> Result<RenderedFrame> {
         // 画像をターゲットサイズにリサイズ
