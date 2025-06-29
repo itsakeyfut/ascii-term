@@ -63,4 +63,9 @@ impl AsciiRenderer {
         self.config.target_width = (width / self.config.width_modifiers as u16) as u32;
         self.config.target_height = height as u32;
     }
+
+    /// 文字マップを変更
+    pub fn set_char_map(&mut self, index: u8) {
+        self.config.char_map_index = index;
+    }
 }
