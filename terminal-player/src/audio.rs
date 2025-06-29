@@ -54,4 +54,10 @@ impl AudioPlayer {
         self.sink.pause();
         Ok(())
     }
+
+    /// 再生を再開
+    pub fn resume(&mut self) -> Result<()> {
+        self.sink.play();
+        Ok(())
+    }
 }
