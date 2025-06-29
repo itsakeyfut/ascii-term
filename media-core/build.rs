@@ -15,7 +15,7 @@ fn main() {
             configure_macos();
         }
         "linux" => {
-            unimplemented!()
+            configure_linux();
         }
         _ => {
             println!("cargo:warning=Unsupported target OS: {}", target_os);
@@ -44,4 +44,15 @@ fn configure_macos() {
     println!("cargo:rustc-link-lib=framework=CoreMedia");
     println!("cargo:rustc-link-lib=framework=CoreVideo");
     println!("cargo:rustc-link-lib=framework=AVFoundation");
+}
+
+fn configure_linux() {
+    // Linux ライブラリパスを追加
+    println!("cargo:rustc-link-search=native=/urs/lib/x86_64-linux-gnu");
+    println!("cargo:rustc-link-search=native=/usr/local/lib");
+
+    // システムライブラリ
+    println!("cargo:rustc-link-lib=pthread");
+    println!("cargo:rustc-link-lib=dl");
+    println!("cargo:rustc-link-lib=m");
 }
