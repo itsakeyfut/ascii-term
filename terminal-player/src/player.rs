@@ -60,3 +60,23 @@ pub enum PlayerStatus {
     Paused,
     Stopped,
 }
+
+/// メディアプレーヤー
+pub struct Player {
+    media_file: MediaFile,
+    config: PlayerConfig,
+    state: Arc<AtomicBool>, // true = playing, false = paused
+    stop_signal: Arc<AtomicBool>,
+
+    // チャンネル
+    command_tx: Sender<PlayerCommand>,
+    command_rx: Receiver<PlayerCommand>,
+    frame_tx: Sender<RenderedFrame>,
+    frame_rx: Receiver<RenderedFrame>,
+
+    // コンポーネント
+    renderer: AsciiRenderer,
+    // TODO: 追加が必要
+    // terminal
+    // audio_player 
+}
