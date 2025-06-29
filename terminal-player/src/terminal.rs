@@ -21,3 +21,19 @@ pub struct Terminal {
     grayscale_mode: bool,
     last_frame: Option<RenderedFrame>,
 }
+
+impl Terminal {
+    /// 新しいターミナルを作成
+    pub fn new(
+        command_tx: Sender<PlayerCommand>,
+        frame_rx: Receiver<RenderedFrame>,
+        grayscale_mode: bool,
+    ) -> Result<Self> {
+        Ok(Self {
+            command_tx,
+            frame_rx,
+            grayscale_mode,
+            last_frame: None,
+        })
+    }
+}
