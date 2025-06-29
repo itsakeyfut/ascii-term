@@ -182,3 +182,41 @@ impl AsciiRenderer {
         (ascii_text, rgb_data)
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use image::{RgbImage, Rgb};
+
+    #[test]
+    fn test_ascii_renderer_creation() {
+        let config = RenderConfig::default();
+        let renderer = AsciiRenderer::new(config);
+        assert_eq!(renderer.config.target_width, 80);
+        assert_eq!(renderer.config.target_height, 24);
+    }
+
+    #[test]
+    fn test_render_small_image() {
+        let mut config = RenderConfig::default();
+        config.target_width = 4;
+        config.target_height = 2;
+
+        let mut renderer = AsciiRenderer::new(config);
+
+        // 2x2 の小さな画像を作成
+        let mut img = RgbImage::new(2, 2);
+        img.put_pixel(0, 0, Rgb([255, 255, 255,])); // White
+        img.put_pixel(1, 0, Rgb([0, 0, 0,]));       // Black
+        img.put_pixel(0, 1, Rgb([128, 128, 128,])); // Gray
+        img.put_pixel(1, 1, Rgb([200, 200, 200,])); // Light Gray
+
+        let dynamic_img = DynamicImage::ImageRgb8(img);
+        let result = renderer.render_image(&dynamic_img).unwrap();
+
+        assert_eq!(result.width, 4);
+        assert_eq!(result.height, 2);
+        assert!(!result.ascii_text.is_empty());
+        assert_eq!(result.rgb_data.len(), 4 * 2 * 3); // width * height * RGB
+    }
+}
