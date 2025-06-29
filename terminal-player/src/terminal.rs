@@ -37,6 +37,14 @@ impl Terminal {
         })
     }
 
+    /// ターミナルを初期化
+    fn init_terminal(&self) -> Result<()> {
+        execute!(stdout(), EnterAlternateScreen, SetTitle("Ascii Term"))?;
+        terminal::enable_raw_mode()?;
+        self.cleanup_terminal()?;
+        Ok(())
+    }
+
     /// ターミナルの実行を開始
     fn cleanup_terminal(&self) -> Result<()> {
         execute!(
