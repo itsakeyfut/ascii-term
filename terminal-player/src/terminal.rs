@@ -110,4 +110,12 @@ impl Terminal {
         stdout().flush()?;
         Ok(())
     }
+
+    /// コマンドを送信
+    fn send_command(&self, command: PlayerCommand) -> Result<()> {
+        self.command_tx
+            .send(command)
+            .map_err(|e| anyhow::anyhow!("Failed to send command: {}", e))?;
+        Ok(())
+    }
 }
