@@ -57,4 +57,16 @@ impl Terminal {
         terminal::disable_raw_mode()?;
         Ok(())
     }
+
+    /// 画面をクリア
+    fn clear_screen(&self) -> Result<()> {
+        execute!(
+            stdout(),
+            Clear(ClearType::All),
+            Hide,
+            MoveTo(0, 0),
+        )?;
+        stdout().flush()?;
+        Ok(())
+    }
 }
