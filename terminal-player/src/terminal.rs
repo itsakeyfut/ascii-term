@@ -156,7 +156,7 @@ impl Terminal {
 
                     // ヘルプ表示
                     (KeyCode::Char('h'), _) | (KeyCode::Char('H'), _) => {
-                        unimplemented!()
+                        self.show_help()?;
                     }
 
                     _ => {}
@@ -172,6 +172,42 @@ impl Terminal {
         }
 
         Ok(false)
+    }
+
+    /// ヘルプを表示
+    fn show_help(&self) -> Result<()> {
+        let help_text = r#"
+            tplay - Terminal Media Player
+
+            Controls:
+            Space       Play/Pause
+            Q, Esc      Quit
+            M           Mute/Unmute
+            G           Toggle Grayscale
+            0-9         Change character map
+            H           Show this help
+
+            Press any key to continue...
+        "#;
+
+        execute!(
+            stdout(),
+            Clear(ClearType::All),
+            MoveTo(0, 0),
+            Print(help_text)
+        )?;
+        stdout().flush()?;
+
+        // キー入力を待つ
+        event::read()?;
+        
+        // 画面をクリアして前の状態に戻る
+        self.clear_screen()?;
+        if let Some(ref frame) = self.last_frame {
+            self.display_frame(frame)?;
+        }
+
+        Ok(())
     }
 
     /// コマンドを送信
