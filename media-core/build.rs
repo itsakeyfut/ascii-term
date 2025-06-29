@@ -24,6 +24,9 @@ fn main() {
 
     // OpenCV 設定
     configure_opencv();
+
+    // FFmpeg 設定
+    configure_ffmpeg();
 }
 
 fn configure_windows() {
@@ -69,5 +72,30 @@ fn configure_opencv() {
     // pkg-config を使用して OpenCV を検出
     if pkg_config::probe_library("opencv4").or_else(|_| pkg_config::probe_library("opencv")).is_err() {
         println!("cargo:warning=OpenCV not found via pkg-config, using system defaults");
+    }
+}
+
+fn configure_ffmpeg() {
+    // FFmpeg 環境変数チェック
+    if let Ok(ffmpeg_dir) = env::var("FFMPEG_DIR") {
+        println!("cargo:rustc-link-search=native={}/lib", ffmpeg_dir);
+    }
+
+    // pkg-config を使用して FFmpeg を検出
+    let ffmpeg_libs = ["libavformat", "libavcodec", "libavutil", "libswscale", "libswresample"];
+
+    for lib in &ffmpeg_libs {
+        if pkg_config::probe_library(lib).is_err() {
+            println!("cargo:warning={} not found via pkg-config", lib);
+        }
+    }
+
+    // 静的リンクが有効な場合の設定
+    if env::var("CARGO_FEATURE_FFMPEG_STATIC").is_ok() {
+        println!("cargo:rustc-link-lib=static=avformat");
+        println!("cargo:rustc-link-lib=static=avcodec");
+        println!("cargo:rustc-link-lib=static=avutil");
+        println!("cargo:rustc-link-lib=static=swscale");
+        println!("cargo:rustc-link-lib=static=swresample");
     }
 }
