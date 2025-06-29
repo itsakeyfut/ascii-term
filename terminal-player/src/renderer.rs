@@ -37,3 +37,19 @@ pub struct RenderedFrame {
     pub width: u32,
     pub height: u32,
 }
+
+/// ASCII アートレンダラー
+pub struct AsciiRenderer {
+    config: RenderConfig,
+    resizer: fr::Resizer,
+}
+
+impl AsciiRenderer {
+    /// 新しいレンダラーを作成
+    pub fn new(config: RenderConfig) -> Self {
+        Self {
+            config,
+            resizer: fr::Resizer::new(),
+        }
+    }
+}
