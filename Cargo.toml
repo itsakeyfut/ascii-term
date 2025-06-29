@@ -1,7 +1,7 @@
 [workspace]
 members = [
     "media-core",
-    # "terminal-player",
+    "terminal-player",
     # "downloader"
 ]
 

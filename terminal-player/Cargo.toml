@@ -1,0 +1,31 @@
+[package]
+name = "terminal-player"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+media-core = { path = "../media-core" }
+
+# ターミナル関連
+crossterm = { workspace = true }
+clap = { workspace = true }
+
+# 非同期・並行処理
+tokio = { workspace = true }
+crossbeam-channel = { workspace = true }
+
+# エラーハンドリング
+anyhow = { workspace = true }
+thiserror = { workspace = true }
+
+# 画像処理
+image = { workspace = true }
+fast_image_resize = { workspace = true }
+
+# オーディオ
+rodio = { workspace = true }
+
+# ユーティリティ
+serde = { workspace = true }
+serde_json = { workspace = true }
+url = { workspace = true }
