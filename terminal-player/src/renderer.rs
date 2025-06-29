@@ -74,6 +74,25 @@ impl AsciiRenderer {
         self.config.grayscale = grayscale;
     }
 
+    /// DynamicImage を ASCII アートにレンダリング
+    pub fn render_image(&mut self, image: &DynamicImage) -> Result<RenderedFrame> {
+        // 画像をターゲットサイズにリサイズ
+        let resized_image = self.resize_image(image)?;
+
+        // RGB画像に変換
+        let rgb_image = resized_image.to_rgb8();
+
+        // ASCII文字列とRGBデータを生成
+        let (ascii_text, rgb_data) = self.image_to_ascii_with_color(&rgb_image);
+
+        Ok(RenderedFrame {
+            ascii_text,
+            rgb_data,
+            width: self.config.target_width,
+            height: self.config.target_height,
+        })
+    }
+
     /// 画像をリサイズ
     fn resize_image(&mut self, image: &DynamicImage) -> Result<DynamicImage> {
         let src_width = image.width();
