@@ -71,7 +71,7 @@ impl Terminal {
     }
 
     /// フレームを表示
-    fn display_frame(&mut self, frame: &RenderedFrame) -> Result<()> {
+    fn display_frame(&self, frame: &RenderedFrame) -> Result<()> {
         if self.grayscale_mode {
             self.display_grayscale_frame(frame)
         } else {
@@ -109,6 +109,69 @@ impl Terminal {
         execute!(stdout(), MoveTo(0, 0), Print(colored_string))?;
         stdout().flush()?;
         Ok(())
+    }
+
+    /// 入力イベントを処理
+    fn handle_input_event(&mut self) -> Result<bool> {
+        let event = event::read()?;
+
+        match event {
+            Event::Key(KeyEvent { code, modifiers, .. }) => {
+                match (code, modifiers) {
+                    // 終了
+                    (KeyCode::Char('q'), _) |
+                    (KeyCode::Char('Q'), _) |
+                    (KeyCode::Esc, _) |
+                    (KeyCode::Char('c'), KeyModifiers::CONTROL) => {
+                        self.send_command(PlayerCommand::Stop)?;
+                        return Ok(true);
+                    }
+
+                    // 再生/一時停止
+                    (KeyCode::Char(' '), _) => {
+                        self.send_command(PlayerCommand::TogglePlayPause)?;
+                    }
+
+                    // ミュートの切り替え
+                    (KeyCode::Char('m'), _) | (KeyCode::Char('M'), _) => {
+                        self.send_command(PlayerCommand::ToggleMute)?;
+                    }
+
+                    // グレースケール切り替え
+                    (KeyCode::Char('g'), _) | (KeyCode::Char('G'), _) => {
+                        self.grayscale_mode = !self.grayscale_mode;
+                        self.send_command(PlayerCommand::ToggleGrayscale)?;
+
+                        // 最後のフレームを再描画
+                        if let Some(ref frame) = self.last_frame {
+                            self.display_frame(frame)?;
+                        }
+                    }
+
+                    // 文字マップ変更 (0-9)
+                    (KeyCode::Char(digit), _) if digit.is_ascii_digit() => {
+                        let index = digit.to_digit(10).unwrap_or(0) as u8;
+                        self.send_command(PlayerCommand::SetCharMap(index))?;
+                    }
+
+                    // ヘルプ表示
+                    (KeyCode::Char('h'), _) | (KeyCode::Char('H'), _) => {
+                        unimplemented!()
+                    }
+
+                    _ => {}
+                }
+            }
+
+            Event::Resize(width, height) => {
+                self.send_command(PlayerCommand::Resize(width, height))?;
+                self.clear_screen()?;
+            }
+
+            _ => {}
+        }
+
+        Ok(false)
     }
 
     /// コマンドを送信
