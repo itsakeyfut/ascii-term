@@ -35,3 +35,20 @@ impl Default for PlayerConfig {
         }
     }
 }
+
+/// プレイヤー制御コマンド
+#[derive(Debug, Clone)]
+pub enum PlayerCommand {
+    Play,
+    Pause,
+    Stop,
+    Seek(Duration),
+    SetVolume(f32),
+    Mute,
+    Unmute,
+    TogglePlayPause,
+    ToggleMute,
+    SetCharMap(u8),
+    ToggleGrayscale,
+    Resize(u16, u16),
+}
