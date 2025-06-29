@@ -156,6 +156,7 @@ mod tests {
     fn create_dummy_player() -> AudioPlayer {
         // テスト環境では実際の音声ファイルが利用できない可能性があるため、
         // ここではダミーの実装を作成
+        // 特に仮想環境では音声機能が備わっていない可能性があるため、テストが失敗する
         let (_stream, stream_handle) = OutputStream::try_default().unwrap();
         let sink = Sink::try_new(&stream_handle).unwrap();
 
