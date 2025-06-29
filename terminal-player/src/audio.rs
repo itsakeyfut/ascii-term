@@ -106,4 +106,9 @@ impl AudioPlayer {
     pub fn is_playing(&self) -> bool {
         !self.sink.is_paused()
     }
+
+    /// ミュート中かどうか
+    pub fn is_muted(&self) -> bool {
+        self.is_muted.load(Ordering::Relaxed)
+    }
 }
