@@ -28,3 +28,12 @@ impl Default for RenderConfig {
         }
     }
 }
+
+/// ASCII文字情報とRGB色情報を含む構造体
+#[derive(Debug, Clone)]
+pub struct RenderedFrame {
+    pub ascii_text: String,
+    pub rgb_data: Vec<u8>,
+    pub width: u32,
+    pub height: u32,
+}
