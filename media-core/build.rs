@@ -21,6 +21,9 @@ fn main() {
             println!("cargo:warning=Unsupported target OS: {}", target_os);
         }
     }
+
+    // OpenCV 設定
+    configure_opencv();
 }
 
 fn configure_windows() {
@@ -55,4 +58,16 @@ fn configure_linux() {
     println!("cargo:rustc-link-lib=pthread");
     println!("cargo:rustc-link-lib=dl");
     println!("cargo:rustc-link-lib=m");
+}
+
+fn configure_opencv() {
+    // OpenCV 環境変数チェック
+    if let Ok(opencv_dir) = env::var("OPENCV_DIR") {
+        println!("cargo:rustc-link-search=native={}/lib", opencv_dir);
+    }
+
+    // pkg-config を使用して OpenCV を検出
+    if pkg_config::probe_library("opencv4").or_else(|_| pkg_config::probe_library("opencv")).is_err() {
+        println!("cargo:warning=OpenCV not found via pkg-config, using system defaults");
+    }
 }
