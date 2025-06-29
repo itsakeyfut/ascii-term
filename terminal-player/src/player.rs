@@ -20,3 +20,18 @@ pub struct PlayerConfig {
     pub add_newlines: bool,
     pub enable_audio: bool,
 }
+
+impl Default for PlayerConfig {
+    fn default() -> Self {
+        Self {
+            fps: None,
+            loop_playback: false,
+            char_map_index: 0,
+            grayscale: false,
+            width_modifier: 1,
+            allow_frame_skip: false,
+            add_newlines: false,
+            enable_audio: true,
+        }
+    }
+}
