@@ -886,6 +886,7 @@ dependencies = [
  "image",
  "num",
  "opencv",
+ "pkg-config",
  "rodio",
  "serde",
  "serde_json",

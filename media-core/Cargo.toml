@@ -35,3 +35,6 @@ tempfile = { workspace = true }
 
 # 数値計算
 num = { workspace = true }
+
+[build-dependencies]
+pkg-config = "0.3.32"
