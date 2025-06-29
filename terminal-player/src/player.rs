@@ -52,3 +52,11 @@ pub enum PlayerCommand {
     ToggleGrayscale,
     Resize(u16, u16),
 }
+
+/// プレイヤーの状態
+#[derive(Debug, Clone, PartialEq)]
+pub enum PlayerStatus {
+    Playing,
+    Paused,
+    Stopped,
+}
