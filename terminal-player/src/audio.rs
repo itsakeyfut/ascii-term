@@ -42,4 +42,10 @@ impl AudioPlayer {
             original_volume: 1.0,
         })
     }
+
+    /// 再生を開始
+    pub fn play(&mut self) -> Result<()> {
+        self.sink.play();
+        Ok(())
+    }
 }
