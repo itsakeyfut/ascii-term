@@ -85,4 +85,11 @@ impl AudioPlayer {
         self.sink.set_volume(0.0);
         Ok(())
     }
+
+    /// ミュート解除
+    pub fn unmute(&mut self) -> Result<()> {
+        self.is_muted.store(false, Ordering::Relaxed);
+        self.sink.set_volume(self.original_volume);
+        Ok(())
+    }
 }
