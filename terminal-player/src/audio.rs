@@ -92,4 +92,13 @@ impl AudioPlayer {
         self.sink.set_volume(self.original_volume);
         Ok(())
     }
+
+    /// ミュート切り替え
+    pub fn toggle_mute(&mut self) -> Result<()> {
+        if self.is_muted.load(Ordering::Relaxed) {
+            self.unmute()
+        } else {
+            self.mute()
+        }
+    }
 }
