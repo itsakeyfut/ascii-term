@@ -31,3 +31,15 @@ pub struct Pipeline {
     frame_buffer: VecDeque<VideoFrame>,
     is_running: Arc<AtomicBool>,
 }
+
+impl Pipeline {
+    /// 新しいパイプラインを作成
+    pub fn new(config: PipelineConfig) -> Self {
+        Self {
+            config,
+            decoder: None,
+            frame_buffer: VecDeque::new(),
+            is_running: Arc::new(AtomicBool::new(false)),
+        }
+    }
+}
