@@ -98,4 +98,10 @@ impl PipelineBuilder {
             config: PipelineConfig::default(),
         }
     }
+
+    /// バッファサイズを設定
+    pub fn buffer_size(mut self, size: usize) -> Self {
+        self.config.buffer_size = size;
+        self
+    }
 }
