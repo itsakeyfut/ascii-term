@@ -7,6 +7,7 @@ pub mod pipeline;
 
 pub use errors::{MediaError, Result};
 pub use media::{MediaFile, MediaType, MediaInfo};
+pub use pipeline::{Pipeline, PipelineBuilder};
 
 /// ライブラリの初期化
 /// 
