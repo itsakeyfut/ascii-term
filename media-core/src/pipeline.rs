@@ -122,3 +122,9 @@ impl PipelineBuilder {
         Pipeline::new(self.config)
     }
 }
+
+impl Default for PipelineBuilder {
+    fn default() -> Self {
+        Self::new()
+    }
+}
