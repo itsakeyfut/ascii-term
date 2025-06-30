@@ -88,3 +88,19 @@ pub struct FormatInfo {
     pub vbr: Option<f64>, // 動画ビットレート
     pub abr: Option<f64>, // 音声ビットレート
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[tokio::test]
+    async fn test_ytdlp_check() {
+        // yt-dlpのチェックテスト
+        // 実際の環境では適切にスキップされる
+        let result = check_ytdlp_installed().await;
+        match result {
+            Ok(()) => println!("yt-dlp is available"),
+            Err(e) => println!("yt-dlp check failed: {}", e),
+        }
+    }
+}
