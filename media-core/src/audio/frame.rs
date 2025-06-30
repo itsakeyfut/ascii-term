@@ -37,4 +37,16 @@ impl AudioFormat {
     pub fn is_float(&self) -> bool {
         matches!(self, AudioFormat::F32LE | AudioFormat::F64LE)
     }
+
+    /// FFmpeg のサンプル形式から変換
+    pub fn from_ffmpeg_format(format: ffmpeg_next::format::Sample) -> Result<Self> {
+        match format {
+            ffmpeg_next::format::Sample::U8(_) => Ok(AudioFormat::U8),
+            ffmpeg_next::format::Sample::I16(_) => Ok(AudioFormat::S16LE),
+            ffmpeg_next::format::Sample::I32(_) => Ok(AudioFormat::S32LE),
+            ffmpeg_next::format::Sample::F32(_) => Ok(AudioFormat::F32LE),
+            ffmpeg_next::format::Sample::F64(_) => Ok(AudioFormat::F64LE),
+            _ => Err(MediaError::UnsupportedCodec(format!("Unsupported audio format: {:?}", format))),
+        }
+    }
 }
