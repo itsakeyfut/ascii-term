@@ -116,4 +116,9 @@ impl PipelineBuilder {
         self.config.max_decode_threads = threads;
         self
     }
+
+    /// パイプラインを構築
+    pub fn build(self) -> Pipeline {
+        Pipeline::new(self.config)
+    }
 }
