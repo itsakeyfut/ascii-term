@@ -50,4 +50,11 @@ impl Pipeline {
         }
         Ok(())
     }
+
+    /// パイプラインを開始
+    pub fn start(&mut self) -> Result<()> {
+        self.is_running.store(false, Ordering::Relaxed);
+        self.frame_buffer.clear();
+        Ok(())
+    }
 }
