@@ -79,4 +79,9 @@ impl Pipeline {
     pub fn is_buffer_full(&self) -> bool {
         self.frame_buffer.len() >= self.config.buffer_size
     }
+
+    /// パイプラインが実行中かどうか
+    pub fn is_running(&self) -> bool {
+        self.is_running.load(Ordering::Relaxed)
+    }
 }
