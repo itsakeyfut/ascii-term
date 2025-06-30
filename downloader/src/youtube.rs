@@ -56,6 +56,23 @@ async fn check_ytdlp_installed() -> Result<()> {
     }
 }
 
+/// 動画情報
+#[derive(Debug, serde::Deserialize)]
+pub struct VideoInfo {
+    pub id: String,
+    pub title: String,
+    pub description: Option<String>,
+    pub duration: Option<f64>,
+    pub uploader: Option<String>,
+    pub upload_date: Option<String>,
+    pub view_count: Option<i64>,
+    pub like_count: Option<i64>,
+    pub width: Option<i32>,
+    pub height: Option<i32>,
+    pub fps: Option<f64>,
+    pub formats: Vec<FormatInfo>,
+}
+
 /// 形式情報
 #[derive(Debug, serde::Deserialize)]
 pub struct FormatInfo {
