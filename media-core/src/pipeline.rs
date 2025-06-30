@@ -85,3 +85,8 @@ impl Pipeline {
         self.is_running.load(Ordering::Relaxed)
     }
 }
+
+/// パイプラインビルダー
+pub struct PipelineBuilder {
+    config: PipelineConfig,
+}
