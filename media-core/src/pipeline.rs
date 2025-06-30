@@ -90,3 +90,12 @@ impl Pipeline {
 pub struct PipelineBuilder {
     config: PipelineConfig,
 }
+
+impl PipelineBuilder {
+    /// 新しいビルダーを作成
+    pub fn new() -> Self {
+        Self {
+            config: PipelineConfig::default(),
+        }
+    }
+}
