@@ -67,7 +67,7 @@ pub struct FormatInfo {
     pub vcodec: Option<String>,
     pub acodec: Option<String>,
     pub filesize: Option<i64>,
-    pub tbr: Option<f64>, // 総ビットレット
-    pub vbr: Option<f64>, // 動画ビットレット
-    pub abr: Option<f64>, // 音声ビットレット
+    pub tbr: Option<f64>, // 総ビットレート
+    pub vbr: Option<f64>, // 動画ビットレート
+    pub abr: Option<f64>, // 音声ビットレート
 }
