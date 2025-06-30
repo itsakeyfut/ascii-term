@@ -20,3 +20,16 @@ pub enum AudioFormat {
     /// 64ビット浮動小数点
     F64LE,
 }
+
+impl AudioFormat {
+    /// サンプルあたりのバイト数を取得
+    pub fn bytes_per_sample(&self) -> usize {
+        match self {
+            AudioFormat::U8 => 1,
+            AudioFormat::S16LE | AudioFormat::S16BE => 2,
+            AudioFormat::S24LE => 3,
+            AudioFormat::S32LE | AudioFormat::F32LE => 4,
+            AudioFormat::F64LE => 8,
+        }
+    }
+}
