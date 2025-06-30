@@ -50,3 +50,24 @@ impl AudioFormat {
         }
     }
 }
+
+/// オーディオフレームを表現する構造体
+#[derive(Debug, Clone)]
+pub struct AudioFrame {
+    /// オーディオデータ（インターリーブまたはプレーナー）
+    pub data: Vec<u8>,
+    /// サンプル数
+    pub samples: usize,
+    /// チャンネル数
+    pub channels: u16,
+    /// サンプルレート（Hz）
+    pub sample_rate: u32,
+    /// サンプル形式
+    pub format: Duration,
+    /// タイムスタンプ
+    pub timestamp: Duration,
+    /// PTS (Presentation Time Stamp)
+    pub pts: i64,
+    /// データがプレーナー形式かどうか
+    pub is_planar: bool,
+}
