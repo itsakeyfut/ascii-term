@@ -1,7 +1,7 @@
 pub mod errors;
 pub mod media;
 pub mod video;
-// pub mod audio;
+pub mod audio;
 // pub mod image;
 pub mod pipeline;
 
