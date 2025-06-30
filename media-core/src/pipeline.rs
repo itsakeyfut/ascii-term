@@ -69,4 +69,9 @@ impl Pipeline {
     pub fn next_frame(&mut self) -> Option<VideoFrame> {
         self.frame_buffer.pop_front()
     }
+
+    /// バッファ内のフレーム数を取得
+    pub fn buffer_size(&self) -> usize {
+        self.frame_buffer.len()
+    }
 }
