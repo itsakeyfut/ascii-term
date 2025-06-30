@@ -23,3 +23,11 @@ impl Default for PipelineConfig {
         }
     }
 }
+
+/// メディア処理パイプライン
+pub struct Pipeline {
+    config: PipelineConfig,
+    decoder: Option<VideoDecoder>,
+    frame_buffer: VecDeque<VideoFrame>,
+    is_running: Arc<AtomicBool>,
+}
