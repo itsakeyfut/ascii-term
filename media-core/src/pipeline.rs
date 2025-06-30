@@ -64,4 +64,9 @@ impl Pipeline {
         self.frame_buffer.clear();
         Ok(())
     }
+
+    /// 次のフレームを取得
+    pub fn next_frame(&mut self) -> Option<VideoFrame> {
+        self.frame_buffer.pop_front()
+    }
 }
