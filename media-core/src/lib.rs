@@ -3,7 +3,7 @@ pub mod media;
 pub mod video;
 // pub mod audio;
 // pub mod image;
-// pub mod pipeline;
+pub mod pipeline;
 
 pub use errors::{MediaError, Result};
 pub use media::{MediaFile, MediaType, MediaInfo};
