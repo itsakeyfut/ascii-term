@@ -57,4 +57,11 @@ impl Pipeline {
         self.frame_buffer.clear();
         Ok(())
     }
+
+    /// パイプラインを停止
+    pub fn stop(&mut self) -> Result<()> {
+        self.is_running.store(false, Ordering::Relaxed);
+        self.frame_buffer.clear();
+        Ok(())
+    }
 }
