@@ -110,4 +110,10 @@ impl PipelineBuilder {
         self.config.enable_threading = enable;
         self
     }
+
+    /// 最大デコードスレッド数を設定
+    pub fn max_decode_threads(mut self, threads: usize) -> Self {
+        self.config.max_decode_threads = threads;
+        self
+    }
 }
