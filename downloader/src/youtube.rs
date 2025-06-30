@@ -41,6 +41,33 @@ pub async fn download_video(url: &str, browser: &str) -> Result<PathBuf> {
     Ok(persistent_path.to_path_buf())
 }
 
+/// 動画情報を取得（メタデータのみ）
+pub async fn get_video_info(url: &str) -> Result<VideoInfo> {
+    check_ytdlp_installed().await?;
+
+    let output = Command::new("yt-dlp")
+        .arg(url)
+        .arg("--dump-json")
+        .arg("--no-download")
+        .output()
+        .await
+        .map_err(|e| DownloaderError::Process(format!("Failed to execute yt-dlp: {}", e)))?;
+
+    if !output.status.success() {
+        let error_msg = String::from_utf8_lossy(&output.stderr);
+        return Err(DownloaderError::Donwload(format!(
+            "Failed to get video info: {}",
+            error_msg
+        )));
+    }
+
+    let json_str = String::from_utf8_lossy(&output.stdout);
+    let info: VideoInfo = serde_json::from_str(&json_str)
+        .map_err(|e| DownloaderError::Parse(format!("Failed to parse video info: {}", e)))?;
+
+    Ok(info)
+}
+
 /// yt-dlp がインストールされているかチェック
 async fn check_ytdlp_installed() -> Result<()> {
     let output = Command::new("yt-dlp")
