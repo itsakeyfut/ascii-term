@@ -68,6 +68,33 @@ pub async fn get_video_info(url: &str) -> Result<VideoInfo> {
     Ok(info)
 }
 
+/// 利用可能な形式を取得
+pub async fn list_formats(url: &str) -> Result<Vec<FormatInfo>> {
+    check_ytdlp_installed().await?;
+
+    let output = Command::new("yt-dlp")
+        .arg(url)
+        .arg("--list-formats")
+        .arg("--dump-json")
+        .output()
+        .await
+        .map_err(|e| DownloaderError::Process(format!("Failed to execute yt-dlp: {}", e)))?;
+
+    if !output.status.success() {
+        let error_msg = String::from_utf8_lossy(&output.stderr);
+        return Err(DownloaderError::Download(format!(
+            "Failed to list formats: {}",
+            error_msg
+        )));
+    }
+
+    let json_str = String::from_utf8_lossy(&output.stdout);
+    let formats: Vec<FormatInfo> = serde_json::from_str(&json_str)
+        .map_err(|e| DownloaderError::Parse(format!("Failed to parse formats: {}", e)))?;
+
+    Ok(formats)
+}
+
 /// yt-dlp がインストールされているかチェック
 async fn check_ytdlp_installed() -> Result<()> {
     let output = Command::new("yt-dlp")
