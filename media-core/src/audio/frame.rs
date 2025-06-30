@@ -32,4 +32,9 @@ impl AudioFormat {
             AudioFormat::F64LE => 8,
         }
     }
+
+    /// 浮動小数点形式かどうか
+    pub fn is_float(&self) -> bool {
+        matches!(self, AudioFormat::F32LE | AudioFormat::F64LE)
+    }
 }
