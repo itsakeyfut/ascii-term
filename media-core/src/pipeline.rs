@@ -42,4 +42,12 @@ impl Pipeline {
             is_running: Arc::new(AtomicBool::new(false)),
         }
     }
+
+    /// メディアファイルを設定
+    pub fn set_media(&mut self, media_file: &MediaFile) -> Result<()> {
+        if media_file.info.has_video {
+            self.decoder = Some(VideoDecoder::new(media_file)?);
+        }
+        Ok(())
+    }
 }
