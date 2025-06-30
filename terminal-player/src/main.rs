@@ -55,6 +55,51 @@ struct Args {
 
 #[tokio::main]
 async fn main() -> Result<()> {
+    let args = Args::parse();
+
+    media_core::init()?;
+
+    let media_path = if is_url(&args.input) {
+        unimplemented!()
+    } else {
+        args.input.clone()
+    };
 
     Ok(())
+}
+
+fn is_url(input: &str) -> bool {
+    input.starts_with("http://") || input.starts_with("http://")
+}
+
+async fn handle_url_input(url: &str, browser: &str) -> Result<String> {
+    use url::Url;
+
+    let parsed_url = Url::parse(url)?;
+
+    if let Some(domain) = parsed_url.domain() {
+        if domain.contains("youtube.com") || domain.contains("youtu.be") {
+            println!("Downloading YouTube video...");
+            let temp_path = unimplemented!();
+            // return Ok(temp_path.to_string_lossy().to_string());
+        }
+    }
+
+    println!("Downloading media file...");
+    let temp_path = download_url(url).await?;
+    Ok(temp_path)
+}
+
+async fn download_url(url: &str) -> Result<String> {
+    use std::io::Write;
+    use tempfile::NamedTempFile;
+
+    let response = reqwest::get(url).await?;
+    let content = response.bytes().await?;
+
+    let mut temp_file = NamedTempFile::new()?;
+    temp_file.write_all(&content)?;
+
+    let path = temp_file.into_temp_path();
+    Ok(path.to_string_lossy().to_string())
 }
