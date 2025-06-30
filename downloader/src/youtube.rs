@@ -55,3 +55,19 @@ async fn check_ytdlp_installed() -> Result<()> {
         )),
     }
 }
+
+/// 形式情報
+#[derive(Debug, serde::Deserialize)]
+pub struct FormatInfo {
+    pub format_id: String,
+    pub ext: String,
+    pub width: Option<i32>,
+    pub height: Option<i32>,
+    pub fps: Option<f64>,
+    pub vcodec: Option<String>,
+    pub acodec: Option<String>,
+    pub filesize: Option<i64>,
+    pub tbr: Option<f64>, // 総ビットレット
+    pub vbr: Option<f64>, // 動画ビットレット
+    pub abr: Option<f64>, // 音声ビットレット
+}
