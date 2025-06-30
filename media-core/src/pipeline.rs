@@ -74,4 +74,9 @@ impl Pipeline {
     pub fn buffer_size(&self) -> usize {
         self.frame_buffer.len()
     }
+
+    /// バッファが満杯かどうか
+    pub fn is_buffer_full(&self) -> bool {
+        self.frame_buffer.len() >= self.config.buffer_size
+    }
 }
