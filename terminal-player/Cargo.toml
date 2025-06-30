@@ -28,4 +28,8 @@ rodio = { workspace = true }
 # ユーティリティ
 serde = { workspace = true }
 serde_json = { workspace = true }
+
+# ファイル操作
+tempfile = { workspace = true }
+reqwest = { workspace = true }
 url = { workspace = true }
