@@ -22,5 +22,5 @@ url = { workspace = true }
 serde = { workspace = true }
 serde_json = { workspace = true }
 
-# YouTube ダウンローダー（オプション）
+# YouTube ダウンローダー
 youtube_dl = { workspace = true }
