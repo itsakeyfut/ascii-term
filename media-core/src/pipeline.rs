@@ -104,4 +104,10 @@ impl PipelineBuilder {
         self.config.buffer_size = size;
         self
     }
+
+    /// スレッド使用を設定
+    pub fn enable_threading(mut self, enable: bool) -> Self {
+        self.config.enable_threading = enable;
+        self
+    }
 }
