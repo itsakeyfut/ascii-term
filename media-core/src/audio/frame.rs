@@ -145,4 +145,39 @@ impl AudioFrame {
     pub fn total_bytes(&self) -> usize {
         self.samples * self.channels as usize * self.format.bytes_per_sample()
     }
+
+    /// インターリーブ形式に変換
+    pub fn to_interleaved(&self) -> Result<AudioFrame> {
+        if !self.is_planar {
+            return Ok(self.clone());
+        }
+
+        let bytes_per_sample = self.format.bytes_per_sample();
+        let mut interleaved_data = Vec::with_capacity(self.data.len());
+
+        // プレーナーからインターリーブに変換
+        for sample_idx in 0..self.samples {
+            for channel in 0..self.channels {
+                let plane_offset = channel as usize * self.samples * bytes_per_sample;
+                let sample_offset = sample_idx * bytes_per_sample;
+                let start = plane_offset + sample_offset;
+                let end = start + bytes_per_sample;
+
+                if end <= self.data.len() {
+                    interleaved_data.extend_from_slice(&self.data[start..end]);
+                }
+            }
+        }
+
+        Ok(AudioFrame::new(
+            interleaved_data,
+            self.samples,
+            self.channels,
+            self.sample_rate,
+            self.format,
+            self.timestamp,
+            self.pts,
+            false, // インターリーブ形式
+        ))
+    }
 }
