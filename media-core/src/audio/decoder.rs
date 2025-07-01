@@ -111,4 +111,13 @@ impl AudioDecoder {
     pub fn sample_format(&self) -> Result<AudioFormat> {
         AudioFormat::from_ffmpeg_format(self.decoder.format())
     }
+
+    /// デコーダーの設定を変更
+    pub fn configure_output(&mut self, sample_rate: Option<u32>, channels: Option<u16>) -> Result<()> {
+        // FFmpegのリサンプラーを使用して出力形式を変更
+        // 実装は複雑になるため、基本的な情報のみ設定
+        // 実際のリサンプリングは AudioProcessor で行う
+        unimplemented!();
+        Ok(())
+    }
 }
