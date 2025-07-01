@@ -63,11 +63,36 @@ pub struct AudioFrame {
     /// サンプルレート（Hz）
     pub sample_rate: u32,
     /// サンプル形式
-    pub format: Duration,
+    pub format: AudioFormat,
     /// タイムスタンプ
     pub timestamp: Duration,
     /// PTS (Presentation Time Stamp)
     pub pts: i64,
     /// データがプレーナー形式かどうか
     pub is_planar: bool,
+}
+
+impl AudioFrame {
+    /// 新しいフレームを作成
+    pub fn new(
+        data: Vec<u8>,
+        samples: usize,
+        channels: u16,
+        sample_rate: u32,
+        format: AudioFormat,
+        timestamp: Duration,
+        pts: i64,
+        is_planar: bool,
+    ) -> Self {
+        Self {
+            data,
+            samples,
+            channels,
+            sample_rate,
+            format,
+            timestamp,
+            pts,
+            is_planar,
+        }
+    }
 }
