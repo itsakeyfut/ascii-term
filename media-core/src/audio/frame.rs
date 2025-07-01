@@ -214,4 +214,40 @@ impl AudioFrame {
             true, // プレーナー形式
         ))
     }
+
+    /// サンプルを浮動小数点配列として取得（正規化済み）
+    pub fn samples_as_f32(&self) -> Result<Vec<f32>> {
+        let mut samples = Vec::with_capacity(self.samples * self.channels as usize);
+
+        match self.format {
+            AudioFormat::U8 => {
+                for &byte in &self.data {
+                    samples.push((byte as f32 - 128.0) / 128.0);
+                }
+            }
+            AudioFormat::S16LE => {
+                for chunk in self.data.chunks_exact(2) {
+                    let sample = i16::from_le_bytes([chunk[0], chunk[1]]);
+                    samples.push(sample as f32 / 32768.0);
+                }
+            }
+            AudioFormat::S32LE => {
+                for chunk in self.data.chunks_exact(4) {
+                    let sample = i32::from_le_bytes([chunk[0], chunk[1], chunk[2], chunk[3]]);
+                    samples.push(sample as f32 / 2147483648.0);
+                }
+            }
+            AudioFormat::F32LE => {
+                for chunk in self.data.chunks_exact(4) {
+                    let sample = f32::from_le_bytes([chunk[0], chunk[1], chunk[2], chunk[3]]);
+                    samples.push(sample);
+                }
+            }
+            _ => {
+                return Err(MediaError::Audio("Unsupported format for f32 conversion".to_string()));
+            }
+        }
+
+        Ok(samples)
+    }
 }
