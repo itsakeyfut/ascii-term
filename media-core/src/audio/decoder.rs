@@ -61,6 +61,30 @@ impl AudioDecoder {
         }
     }
 
+    /// 最後のフレームを取得（ストリーム終了時）
+    pub fn flush(&mut self) -> Result<Vec<AudioFrame>> {
+        self.decoder.send_eof()?;
+
+        let mut frames = Vec::new();
+        loop {
+            let mut frame = ffmpeg::frame::Audio::empty();
+            match self.decoder.receive_frame(&mut frame) {
+                Ok(()) => {
+                    let timestamp = self.pts_to_duration(frame.pts().unwrap_or(0));
+                    let pts = frame.pts().unwrap_or(0);
+
+                    let audio_frame = AudioFrame::from_ffmpeg_frame(&frame, timestamp, pts)?;
+                    frames.push(audio_frame);
+                    self.frame_count += 1;
+                }
+                Err(ffmpeg::Error::Eof) => break,
+                Err(e) => return Err(MediaError::Ffmpeg(e)),
+            }
+        }
+
+        Ok(frames)
+    }
+
     /// PTSを時間に変換
     fn pts_to_duration(&self, pts: i64) -> Duration {
         let seconds = pts as f64 * self.time_base.numerator() as f64 / self.time_base.denominator() as f64;
