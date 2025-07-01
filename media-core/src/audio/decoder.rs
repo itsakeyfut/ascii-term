@@ -99,4 +99,8 @@ impl AudioDecoder {
     pub fn channels(&self) -> u16 {
         self.decoder.channels() as u16
     }
+
+    pub fn frame_count(&self) -> u64 {
+        self.frame_count
+    }
 }
