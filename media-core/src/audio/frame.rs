@@ -140,4 +140,9 @@ impl AudioFrame {
     pub fn duration(&self) -> Duration {
         Duration::from_secs_f64(self.samples as f64 / self.sample_rate as f64)
     }
+
+    /// 総バイト数を取得
+    pub fn total_bytes(&self) -> usize {
+        self.samples * self.channels as usize * self.format.bytes_per_sample()
+    }
 }
