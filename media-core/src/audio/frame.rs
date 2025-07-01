@@ -135,4 +135,9 @@ impl AudioFrame {
             is_planar,
         ))
     }
+
+    /// フレームの長さ（時間）を取得
+    pub fn duration(&self) -> Duration {
+        Duration::from_secs_f64(self.samples as f64 / self.sample_rate as f64)
+    }
 }
