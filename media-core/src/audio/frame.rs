@@ -250,4 +250,53 @@ impl AudioFrame {
 
         Ok(samples)
     }
+
+    /// モノラルに変換（チャンネルをミックス）
+    pub fn to_mono(&self) -> Result<AudioFrame> {
+        if self.channels == 1 {
+            return Ok(self.clone());
+        }
+
+        let samples_f32 = self.samples_as_f32()?;
+        let mut mono_samples = Vec::with_capacity(self.samples);
+
+        if self.is_planar {
+            // プレーナー形式の場合
+            for sample_idx in 0..self.samples {
+                let mut sum = 0.0f32;
+                for channel in 0..self.channels {
+                    let channel_offset = channel as usize * self.samples;
+                    sum += samples_f32[channel_offset + sample_idx];
+                }
+                mono_samples.push(sum / self.channels as f32);
+            }
+        } else {
+            // インターリーブ形式の場合
+            for sample_idx in 0..self.samples {
+                let mut sum = 0.0f32;
+                for channel in 0..self.channels {
+                    let idx = sample_idx * self.channels as usize + channel as usize;
+                    sum += samples_f32[idx];
+                }
+                mono_samples.push(sum / self.channels as f32);
+            }
+        }
+
+        // f32 データをバイトデータに変換
+        let mut mono_data = Vec::with_capacity(mono_samples.len() * 4);
+        for sample in mono_samples {
+            mono_data.extend_from_slice(&sample.to_le_bytes());
+        }
+
+        Ok(AudioFrame::new(
+            mono_data,
+            self.samples,
+            1, // モノラル
+            self.sample_rate,
+            AudioFormat::F32LE,
+            self.timestamp,
+            self.pts,
+            false,
+        ))
+    }
 }
