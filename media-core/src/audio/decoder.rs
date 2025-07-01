@@ -103,4 +103,8 @@ impl AudioDecoder {
     pub fn frame_count(&self) -> u64 {
         self.frame_count
     }
+
+    pub fn codec_name(&self) -> String {
+        format!("{:?}", self.decoder.id())
+    }
 }
