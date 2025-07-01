@@ -1,5 +1,7 @@
 use std::time::Duration;
 
+use ffmpeg_next::format::sample;
+
 use crate::errors::{MediaError, Result};
 
 /// オーディオフレームのサンプル形式
@@ -94,5 +96,43 @@ impl AudioFrame {
             pts,
             is_planar,
         }
+    }
+
+    /// FFmpeg のオーディオフレームから作成
+    pub fn from_ffmpeg_frame(
+        frame: &ffmpeg_next::frame::Audio,
+        timestamp: Duration,
+        pts: i64,
+    ) -> Result<Self> {
+        let samples = frame.samples();
+        let channels = frame.channels() as u16;
+        let sample_rate = frame.rate();
+        let format = AudioFormat::from_ffmpeg_format(frame.format())?;
+        let is_planar = frame.is_planar();
+
+        // フレームデータをコピー
+        let mut data = Vec::new();
+        if is_planar {
+            // プレーナー形式：各チャンネルが別々のプレーンに格納
+            for plane in 0..frame.planes() {
+                let plane_data = frame.data(plane);
+                data.extend_from_slice(plane_data);
+            }
+        } else {
+            // インターリーブ形式：全チャンネルが混在
+            let plane_data = frame.data(0);
+            data.extend_from_slice(plane_data);
+        }
+
+        Ok(Self::new(
+            data,
+            samples,
+            channels,
+            sample_rate,
+            format,
+            timestamp,
+            pts,
+            is_planar,
+        ))
     }
 }
