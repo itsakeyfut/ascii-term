@@ -121,3 +121,15 @@ impl AudioDecoder {
         Ok(())
     }
 }
+
+/// オーディオストリーム情報
+#[derive(Debug, Clone)]
+pub struct AudioStreamInfo {
+    pub index: usize,
+    pub codec_name: String,
+    pub sample_rate: u32,
+    pub channels: u16,
+    pub sample_format: AudioFormat,
+    pub duration: Option<Duration>,
+    pub bit_rate: Option<i64>,
+}
