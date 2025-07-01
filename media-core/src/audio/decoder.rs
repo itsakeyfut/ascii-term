@@ -107,4 +107,8 @@ impl AudioDecoder {
     pub fn codec_name(&self) -> String {
         format!("{:?}", self.decoder.id())
     }
+
+    pub fn sample_format(&self) -> Result<AudioFormat> {
+        AudioFormat::from_ffmpeg_format(self.decoder.format())
+    }
 }
