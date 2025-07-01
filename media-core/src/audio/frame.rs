@@ -180,4 +180,38 @@ impl AudioFrame {
             false, // インターリーブ形式
         ))
     }
+
+    /// プレーナー形式に変換
+    pub fn to_planar(&self) -> Result<AudioFrame> {
+        if !self.is_planar {
+            return Ok(self.clone());
+        }
+
+        let bytes_per_sample = self.format.bytes_per_sample();
+        let mut planar_data = Vec::with_capacity(self.data.len());
+
+        // インターリーブからプレーナーに変換
+        for channel in 0..self.channels {
+            for sample_idx in 0..self.samples {
+                let interleaved_offset = (sample_idx * self.channels as usize + channel as usize) * bytes_per_sample;
+                let start = interleaved_offset;
+                let end = start + bytes_per_sample;
+
+                if end <= self.data.len() {
+                    planar_data.extend_from_slice(&self.data[start..end]);
+                }
+            }
+        }
+
+        Ok(AudioFrame::new(
+            planar_data,
+            self.samples,
+            self.channels,
+            self.sample_rate,
+            self.format,
+            self.timestamp,
+            self.pts,
+            true, // プレーナー形式
+        ))
+    }
 }
