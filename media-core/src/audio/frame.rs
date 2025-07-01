@@ -1,7 +1,5 @@
 use std::time::Duration;
 
-use ffmpeg_next::format::sample;
-
 use crate::errors::{MediaError, Result};
 
 /// オーディオフレームのサンプル形式
