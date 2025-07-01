@@ -90,4 +90,9 @@ impl AudioDecoder {
         let seconds = pts as f64 * self.time_base.numerator() as f64 / self.time_base.denominator() as f64;
         Duration::from_secs_f64(seconds)
     }
+
+    /// デコーダー情報を取得
+    pub fn sample_rate(&self) -> u32 {
+        self.decoder.rate()
+    }
 }
