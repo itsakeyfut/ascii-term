@@ -79,4 +79,12 @@ impl SupportedImageFormat {
     pub fn supports_transparency(self) -> bool {
         matches!(self, Self::Png | Self::Gif | Self::WebP | Self::Ico | Self::Tiff)
     }
+
+    /// ロスレス圧縮かどうか
+    pub fn is_lossness(self) -> bool {
+        matches!(
+            self,
+            Self::Png | Self::Gif | Self::Bmp | Self::Ico | Self::Tiff | Self::Tga | Self::Pnm | Self::Farbfeld
+        )
+    }
 }
