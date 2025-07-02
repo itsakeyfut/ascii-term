@@ -222,4 +222,32 @@ impl FormatDetector {
 
         Ok(format)
     }
+
+    /// 画像メタデータを取得
+    pub fn get_metadata<P: AsRef<Path>>(path: P) -> Result<ImageMetadata> {
+        let format = Self::detect_format(&path)
+            .ok_or_else(|| MediaError::InvalidFormat("Unknown image format".to_string()))?;
+
+        // iamge クレートで基本情報を取得
+        let reader = image::ImageReader::open(&path)?;
+        let dimensions = reader.into_dimensions()?;
+
+        // より詳細な情報を取得するため、実際に画像を開く
+        let img = image::open(&path)?;
+        let color_type = ColorType::from_image_color_type(img.color());
+
+        let file_size = std::fs::metadata(&path).ok().map(|m| m.len());
+
+        Ok(ImageMetadata {
+            width: dimensions.0,
+            height: dimensions.1,
+            format,
+            color_type,
+            bit_depth: color_type.bits_per_channel(),
+            has_alpha: color_type.has_alpha(),
+            is_animated: format.supports_animation(),
+            frame_count: if format.supports_animation() { Some(1) } else { None }, // 実際のフレーム数は別途解析が必要
+            file_size,
+        })
+    }
 }
