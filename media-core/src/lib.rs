@@ -2,7 +2,7 @@ pub mod errors;
 pub mod media;
 pub mod video;
 pub mod audio;
-// pub mod image;
+pub mod image;
 pub mod pipeline;
 
 pub use errors::{MediaError, Result};
