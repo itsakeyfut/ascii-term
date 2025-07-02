@@ -36,4 +36,20 @@ impl UrlValidator {
         }
         false
     }
+
+    /// 動画ストリーミングサイトかチェック
+    pub fn is_streaming_site(url: &str) -> bool {
+        if let Ok(parsed) = Url::parse(url) {
+            if let Some(domain) = parsed.domain() {
+                let streaming_domains = [
+                    "youtube.com", "youtu.be", "twitch.tv", "tiktok.com",
+                    "facebook.com", "instagram.com", "x.com", "reddit.com",
+                    "dailymotion.com"
+                ];
+
+                return streaming_domains.iter().any(|&d| domain.contains(d));
+            }
+        }
+        false
+    }
 }
