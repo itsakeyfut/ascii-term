@@ -105,4 +105,61 @@ impl ImageProcessor {
     pub fn update_config(&mut self, config: ImageProcessorConfig) {
         self.config = config;
     }
+
+    /// 画像をリサイズ
+    pub fn resize(
+        &mut self,
+        image: &DynamicImage,
+        width: u32,
+        height: u32,
+        algorithm: Option<ResizeAlgorithm>,
+    ) -> Result<DynamicImage> {
+        let alg = algorithm.unwrap_or(self.config.resize_algorithm);
+        
+        if image.width() == width && image.height() == height {
+            return Ok(image.clone());
+        }
+
+        // RGB画像に変換
+        let rgb_image = image.to_rgb8();
+        
+        let src_image = fr::images::Image::from_vec_u8(
+            image.width(),
+            image.height(),
+            rgb_image.into_raw(),
+            fr::PixelType::U8x3,
+        ).map_err(|e| MediaError::Image(
+            image::ImageError::Parameter(
+                image::error::ParameterError::from_kind(
+                    image::error::ParameterErrorKind::Generic(format!("FastImageResize error: {:?}", e))
+                )
+            )
+        ))?;
+
+        let mut dst_image = fr::images::Image::new(width, height, fr::PixelType::U8x3);
+
+        self.resizer.resize(
+            &src_image,
+            &mut dst_image,
+            &fr::ResizeOptions::new().resize_alg(alg.into()),
+        ).map_err(|e| MediaError::Image(
+            image::ImageError::Parameter(
+                image::error::ParameterError::from_kind(
+                    image::error::ParameterErrorKind::Generic(format!("Resize error: {:?}", e))
+                )
+            )
+        ))?;
+
+        let resized_data = dst_image.into_vec();
+        let resized_buffer = ImageBuffer::from_raw(width, height, resized_data)
+            .ok_or_else(|| MediaError::Image(
+                image::ImageError::Parameter(
+                    image::error::ParameterError::from_kind(
+                        image::error::ParameterErrorKind::DimensionMismatch
+                    )
+                )
+            ))?;
+
+        Ok(DynamicImage::ImageRgb8(resized_buffer))
+    }
 }
