@@ -340,6 +340,13 @@ impl ImageProcessor {
 
         Ok(DynamicImage::ImageRgb8(new_image))
     }
+
+    /// 色反転
+    fn invert(&self, image: &DynamicImage) -> Result<DynamicImage> {
+        let mut inverted = image.clone();
+        inverted.invert();
+        Ok(inverted)
+    }
 }
 
 /// RGB to HSV 変換
