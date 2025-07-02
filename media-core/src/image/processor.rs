@@ -91,3 +91,13 @@ pub struct ImageProcessor {
     config: ImageProcessorConfig,
     resizer: fr::Resizer,
 }
+
+impl ImageProcessor {
+    /// 新しい画像プロセッサーを作成
+    pub fn new(config: ImageProcessorConfig) -> Self {
+        Self {
+            config,
+            resizer: fr::Resizer::new(),
+        }
+    }
+}
