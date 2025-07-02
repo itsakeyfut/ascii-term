@@ -294,6 +294,12 @@ impl ImageProcessor {
 
         Ok(DynamicImage::ImageRgb8(new_image))
     }
+
+    /// ガウシアンブラー
+    fn gaussian_blur(&self, image: &DynamicImage, sigma: f32) -> Result<DynamicImage> {
+        // 簡易的なブラー実装（実際にはより高度なアルゴリズムを使用する必要がある）
+        Ok(image.blur(sigma))
+    }
 }
 
 /// RGB to HSV 変換
