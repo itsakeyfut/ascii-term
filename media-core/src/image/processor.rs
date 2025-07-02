@@ -236,4 +236,88 @@ impl ImageProcessor {
 
         Ok(DynamicImage::ImageRgb8(new_image))
     }
+
+    /// 彩度調整
+    fn adjust_saturation(&self, image: &DynamicImage, saturation: f32) -> Result<DynamicImage> {
+        let saturation = saturation.clamp(0.0, 2.0);
+        let rgb_image = image.to_rgb8();
+        let mut new_data = Vec::with_capacity(rgb_image.len());
+
+        for pixel in rgb_image.pixels() {
+            let [r, g, b] = pixel.0;
+
+            // RGBをHSVに変換して彩度を調整
+            let (h, s, v) = rgb_to_hsv(r, g, b);
+            let new_s = (s * saturation).min(1.0);
+            let (new_r, new_g, new_b) = hsv_to_rgb(h, new_s, v);
+
+            new_data.push(new_r);
+            new_data.push(new_g);
+            new_data.push(new_b);
+        }
+
+        let new_image = ImageBuffer::from_raw(image.width(), image.height(), new_data)
+            .ok_or_else(|| MediaError::Image(
+                image::ImageError::Parameter(
+                    image::error::ParameterError::from_kind(
+                        image::error::ParameterErrorKind::DimensionMismatch
+                    )
+                )
+            ))?;
+
+        Ok(DynamicImage::ImageRgb8(new_image))
+    }
+}
+
+/// RGB to HSV 変換
+fn rgb_to_hsv(r: u8, g: u8, b: u8) -> (f32, f32, f32) {
+    let r = r as f32 / 255.0;
+    let g = g as f32 / 255.0;
+    let b = b as f32 / 255.0;
+
+    let max =r.max(g).max(b);
+    let min =r.min(g).min(b);
+    let delta = max - min;
+
+    let h = if delta == 0.0 {
+        0.0
+    } else if max == r {
+        60.0 * (((g - b) / delta) % 6.0)
+    } else if max == g {
+        60.0 * ((b - r) / delta + 2.0)
+    } else {
+        60.0 * ((r - g) / delta + 4.0)
+    };
+
+    let s = if max == 0.0 { 0.0 } else { delta / max };
+    let v = max;
+
+    (h, s, v)
+}
+
+/// HSV to RGB 変換
+fn hsv_to_rgb(h: f32, s: f32, v: f32) -> (u8, u8, u8) {
+    let c = v * s;
+    let x = c * (1.0 - ((h / 60.0) % 2.0 - 1.0).abs());
+    let m = v - c;
+
+    let (r_prime, g_prime, b_prime) = if h < 60.0 {
+        (c, x, 0.0)
+    } else if h < 120.0 {
+        (x, c, 0.0)
+    } else if h < 180.0 {
+        (0.0, c, x)
+    } else if h < 240.0 {
+        (0.0, x, c)
+    } else if h < 300.0 {
+        (x, 0.0, c)
+    } else {
+        (c, 0.0, x)
+    };
+
+    let r = ((r_prime + m) * 255.0) as u8;
+    let g = ((g_prime + m) * 255.0) as u8;
+    let b = ((b_prime + m) * 255.0) as u8;
+
+    (r, g, b)
 }
