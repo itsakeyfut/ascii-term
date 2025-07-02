@@ -252,7 +252,7 @@ impl FormatDetector {
     }
 
     /// サポートされている形式かチェック
-    pub fn is_suppored<P: AsRef<Path>>(path: P) -> bool {
+    pub fn is_supported<P: AsRef<Path>>(path: P) -> bool {
         Self::detect_format(path).is_some()
     }
 
