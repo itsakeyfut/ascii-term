@@ -52,4 +52,28 @@ impl UrlValidator {
         }
         false
     }
+
+    /// メディアファイルの直接リンクかチェック
+    pub fn is_direct_media_url(url: &str) -> bool {
+        if let Ok(parsed) = Url::parse(url) {
+            if let Some(path) = parsed.path_segments() {
+                if let Some(last_segment) = path.last() {
+                    let media_extensions = [
+                        // 動画
+                        "mp4", "avi", "mkv", "mov", "wmv", "flv", "webm", "m4v",
+                        "3gp", "ogv", "ts", "mts", "m2ts",
+                        // 音声
+                        "mp3", "wav", "flac", "aac", "ogg", "wma", "m4a", "opus",
+                        // 画像
+                        "jpg", "jpeg", "png", "gif", "bmp", "webp", "tiff", "svg"
+                    ];
+                    
+                    if let Some(ext) = last_segment.split('.').last() {
+                        return media_extensions.contains(&ext.to_lowercase().as_str());
+                    }
+                }
+            }
+        }
+        false
+    }
 }
