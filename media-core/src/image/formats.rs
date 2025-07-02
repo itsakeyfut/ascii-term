@@ -170,3 +170,45 @@ impl ColorType {
         matches!(self, Self::Rgb32F | Self::Rgba32F)
     }
 }
+
+/// 画像形式の検出と検証
+pub struct FormatDetector;
+
+impl FormatDetector {
+    /// ファイルヘッダーから形式を検出
+    fn detect_from_header<P: AsRef<Path>>(path: P) -> Result<Option<SupportedImageFormat>> {
+        use std::fs::File;
+        use std::io::Read;
+
+        let mut file = File::open(path)?;
+        let mut header = [0u8; 16];
+        file.read_exact(&mut header).map_err(|_| {
+            MediaError::InvalidFormat("Cannot read file header".to_string())
+        })?;
+
+        let format = match &header[..4] {
+            [0x89, 0x50, 0x47] => Some(SupportedImageFormat::Png),     // PNG
+            [0xFF, 0xD8, 0xFF, _] => Some(SupportedImageFormat::Jpeg), // JPEG
+            [0x47, 0x49, 0x46, _] => Some(SupportedImageFormat::Gif),  // GIF
+            [0x52, 0x49, 0x46, 0x46] => {
+                // RIFF container (WebP)
+                if &header[8..12] == b"WEBP" {
+                    Some(SupportedImageFormat::WebP)
+                } else {
+                    None
+                }
+            }
+            [0x42, 0x40, _, _] => Some(SupportedImageFormat::Bmp),     // BMP
+            _ => {
+                // TIFF (little endian and big endian)
+                if &header[..4] == [0x49, 0x49, 0x2A, 0x00] || &header[..4] == [0x4D, 0x4D, 0x00, 0x2A] {
+                    Some(SupportedImageFormat::Tiff)
+                } else {
+                    None
+                }
+            }
+        };
+
+        Ok(format)
+    }
+}
