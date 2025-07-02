@@ -15,4 +15,13 @@ impl UrlValidator {
     pub fn is_valid_url(url: &str) -> bool {
         Url::parse(url).is_ok()
     }
+
+    /// HTTPまたはHTTPS URLかチェック
+    pub fn is_http_url(url: &str) -> bool {
+        if let Ok(parsed) = Url::parse(url) {
+            matches!(parsed.scheme(), "http" | "https")
+        } else {
+            false
+        }
+    }
 }
