@@ -126,4 +126,14 @@ impl ColorType {
             _ => Self::Rgb8, // フォールバック
         }
     }
+
+    /// チャンネル数を取得
+    pub fn channel_count(self) -> u8 {
+        match self {
+            Self::L8 | Self::L16 => 1,
+            Self::La8 | Self::La16 => 2,
+            Self::Rgb8 | Self::Rgb16 | Self::Rgb32F => 3,
+            Self::Rgba8 | Self::Rgba16 | Self::Rgba32F => 4,
+        }
+    }
 }
