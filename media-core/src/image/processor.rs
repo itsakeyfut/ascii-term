@@ -11,3 +11,15 @@ pub enum ResizeAlgorithm {
     Lanczos3,
     CatmullRom,
 }
+
+impl From<ResizeAlgorithm> for fr::ResizeAlg {
+    fn from(alg: ResizeAlgorithm) -> Self {
+        match alg {
+            ResizeAlgorithm::Nearest => fr::ResizeAlg::Nearest,
+            ResizeAlgorithm::Bilinear => unimplemented!(),
+            ResizeAlgorithm::Bicubic => unimplemented!(),
+            ResizeAlgorithm::Lanczos3 => unimplemented!(),
+            ResizeAlgorithm::CatmullRom => unimplemented!(),
+        }
+    }
+}
