@@ -198,6 +198,15 @@ impl ImageProcessor {
         }
     }
 
+    /// 複数のフィルターを順次適用
+    pub fn apply_filters(&self, image: &DynamicImage, filters: &[ImageFilter]) -> Result<DynamicImage> {
+        let mut result = image.clone();
+        for filter in filters {
+            result = self.apply_filter(&result, filter)?;
+        }
+        Ok(result)
+    }
+
     /// ブライトネス調整
     fn adjust_brightness(&self, image: &DynamicImage, brightness: f32) -> Result<DynamicImage> {
         let brightness = brightness.clamp(-1.0, 1.0);
