@@ -267,6 +267,33 @@ impl ImageProcessor {
 
         Ok(DynamicImage::ImageRgb8(new_image))
     }
+
+    /// ガンマ補正
+    fn adjust_gamma(&self, image: &DynamicImage, gamma: f32) -> Result<DynamicImage> {
+        let gamma = gamma.clamp(0.1, 3.0);
+        let inv_gamma = 1.0 / gamma;
+
+        let rgb_image = image.to_rgb8();
+        let mut new_data = Vec::with_capacity(rgb_image.len());
+
+        for pixel in rgb_image.pixels() {
+            let [r, g, b] = pixel.0;
+            new_data.push(((r as f32 / 255.0).powf(inv_gamma) * 255.0) as u8);
+            new_data.push(((g as f32 / 255.0).powf(inv_gamma) * 255.0) as u8);
+            new_data.push(((b as f32 / 255.0).powf(inv_gamma) * 255.0) as u8);
+        }
+
+        let new_image = ImageBuffer::from_raw(image.width(), image.height(), new_data)
+            .ok_or_else(|| MediaError::Image(
+                image::ImageError::Parameter(
+                    image::error::ParameterError::from_kind(
+                        image::error::ParameterErrorKind::DimensionMismatch
+                    )
+                )
+            ))?;
+
+        Ok(DynamicImage::ImageRgb8(new_image))
+    }
 }
 
 /// RGB to HSV 変換
