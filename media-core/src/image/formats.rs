@@ -274,4 +274,13 @@ impl FormatDetector {
             SupportedImageFormat::Farbfeld,
         ]
     }
+
+    /// 拡張子のリストを取得
+    pub fn supported_extensions() -> Vec<&'static str> {
+        vec![
+            "png", "jpg", "jpeg", "gif", "webp", "bmp", "ico",
+            "tiff", "tif", "tga", "dds", "hdr", "exr",
+            "ppm", "pgm", "pbm", "pam", "ff"
+        ]
+    }
 }
