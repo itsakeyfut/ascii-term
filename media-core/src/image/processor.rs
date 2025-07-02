@@ -62,3 +62,26 @@ pub enum ColorProfile {
     Linear,
     Rec709,
 }
+
+/// 画像フィルター
+#[derive(Debug, Clone)]
+pub enum ImageFilter {
+    /// ブライトネス調整（-1.0 to 1.0）
+    Brightness(f32),
+    /// コントラスト調整（0.0 to 2.0）
+    Contrast(f32),
+    /// 彩度調整（0.0 to 2.0）
+    Saturation(f32),
+    /// ガンマ補正（0.1 to 3.0）
+    Gamma(f32),
+    /// ガウシアンブラー
+    GaussianBlur(f32),
+    /// シャープネス
+    Sharpen(f32),
+    /// グレースケール変換
+    Grayscale,
+    /// セピア調
+    Sepia,
+    /// ネガティブ（反転）
+    Invert,
+}
