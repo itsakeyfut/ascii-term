@@ -183,6 +183,21 @@ impl ImageProcessor {
         self.resize(image, new_width, new_height, algorithm)
     }
 
+    /// フィルターを適用
+    pub fn apply_filter(&self, image: &DynamicImage, filter: &ImageFilter) -> Result<DynamicImage> {
+        match filter {
+            ImageFilter::Brightness(value) => self.adjust_brightness(image, *value),
+            ImageFilter::Contrast(value) => self.adjust_contrast(image, *value),
+            ImageFilter::Saturation(value) => self.adjust_saturation(image, *value),
+            ImageFilter::Gamma(value) => self.adjust_gamma(image, *value),
+            ImageFilter::GaussianBlur(sigma) => self.gaussian_blur(image, *sigma),
+            ImageFilter::Sharpen(amount) => self.sharpen(image, *amount),
+            ImageFilter::Grayscale => Ok(DynamicImage::ImageLuma8(image.to_luma8())),
+            ImageFilter::Sepia => self.sepia(image),
+            ImageFilter::Invert => self.invert(image),
+        }
+    }
+
     /// ブライトネス調整
     fn adjust_brightness(&self, image: &DynamicImage, brightness: f32) -> Result<DynamicImage> {
         let brightness = brightness.clamp(-1.0, 1.0);
