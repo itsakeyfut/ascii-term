@@ -300,6 +300,13 @@ impl ImageProcessor {
         // 簡易的なブラー実装（実際にはより高度なアルゴリズムを使用する必要がある）
         Ok(image.blur(sigma))
     }
+
+    /// シャープネス
+    fn sharpen(&self, image: &DynamicImage, amount: f32) -> Result<DynamicImage> {
+        // 簡易的なシャープネス実装（実際にはより高度なアルゴリズムを使用する必要がある）
+        let amount = amount.clamp(0.0, 2.0);
+        Ok(image.unsharpen(amount, 1))
+    }
 }
 
 /// RGB to HSV 変換
