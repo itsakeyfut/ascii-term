@@ -19,5 +19,27 @@ pub enum SupportedImageFormat {
     Hdr,
     OpenExr,
     Pnm,
-    Farbfelg,
+    Farbfeld,
+}
+
+impl SupportedImageFormat {
+    /// ファイル拡張子から形式を推測
+    pub fn from_extension(ext: &str) -> Option<Self> {
+        match ext.to_lowercase().as_str() {
+            "png" => Some(Self::Png),
+            "jpg" | "jpeg" => Some(Self::Jpeg),
+            "gif" => Some(Self::Gif),
+            "webp" => Some(Self::WebP),
+            "bmp" => Some(Self::Bmp),
+            "ico" => Some(Self::Ico),
+            "tiff" | "tif" => Some(Self::Tiff),
+            "tga" => Some(Self::Tga),
+            "dds" => Some(Self::Dds),
+            "hdr" => Some(Self::Hdr),
+            "exr" => Some(Self::OpenExr),
+            "ppm" | "pgm" | "pbm" | "pam" => Some(Self::Pnm),
+            "ff" => Some(Self::Farbfeld),
+            _ => None,
+        }
+    }
 }
