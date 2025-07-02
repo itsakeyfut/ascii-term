@@ -175,6 +175,17 @@ impl ColorType {
 pub struct FormatDetector;
 
 impl FormatDetector {
+    /// ファイルの形式を検出
+    pub fn detect_format<P: AsRef<Path>>(path: P) -> Option<SupportedImageFormat> {
+        // 拡張子から推測
+        if let Some(format) = SupportedImageFormat::from_path(&path) {
+            return Some(format);
+        }
+
+        // ファイルヘッダーから検出を試行
+        Self::detect_from_header(&path).ok().flatten()
+    }
+
     /// ファイルヘッダーから形式を検出
     fn detect_from_header<P: AsRef<Path>>(path: P) -> Result<Option<SupportedImageFormat>> {
         use std::fs::File;
