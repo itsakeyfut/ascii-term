@@ -150,4 +150,9 @@ impl ColorType {
     pub fn has_alpha(self) -> bool {
         matches!(self, Self::La8 | Self::La16 | Self::Rgba8 | Self::Rgba16 | Self::Rgba32F)
     }
+
+    /// 浮動小数点形式かどうか
+    pub fn is_float(self) -> bool {
+        matches!(self, Self::Rgb32F | Self::Rgba32F)
+    }
 }
