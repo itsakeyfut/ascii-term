@@ -23,3 +23,12 @@ impl From<ResizeAlgorithm> for fr::ResizeAlg {
         }
     }
 }
+
+/// 画質設定
+#[derive(Debug, Clone, Copy)]
+pub enum ImageQuality {
+    Low,
+    Medium,
+    High,
+    Maximum,
+}
