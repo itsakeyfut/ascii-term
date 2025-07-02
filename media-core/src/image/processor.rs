@@ -182,4 +182,31 @@ impl ImageProcessor {
 
         self.resize(image, new_width, new_height, algorithm)
     }
+
+    /// ブライトネス調整
+    fn adjust_brightness(&self, image: &DynamicImage, brightness: f32) -> Result<DynamicImage> {
+        let brightness = brightness.clamp(-1.0, 1.0);
+        let adjustment = (brightness * 255.0) as i16;
+
+        let rgb_image = image.to_rgb8();
+        let mut new_data = Vec::with_capacity(rgb_image.len());
+
+        for pixel in rgb_image.pixels() {
+            let [r, g, b] = pixel.0;
+            new_data.push(((r as i16 + adjustment).clamp(0, 255)) as u8);
+            new_data.push(((g as i16 + adjustment).clamp(0, 255)) as u8);
+            new_data.push(((b as i16 + adjustment).clamp(0, 255)) as u8);
+        }
+
+        let new_image = ImageBuffer::from_raw(image.width(), image.height(), new_data)
+            .ok_or_else(|| MediaError::Image(
+                image::ImageError::Parameter(
+                    image::error::ParameterError::from_kind(
+                        image::error::ParameterErrorKind::DimensionMismatch
+                    )
+                )
+            ))?;
+
+        Ok(DynamicImage::ImageRgb8(new_image))
+    }
 }
