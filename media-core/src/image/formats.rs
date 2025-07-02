@@ -87,4 +87,9 @@ impl SupportedImageFormat {
             Self::Png | Self::Gif | Self::Bmp | Self::Ico | Self::Tiff | Self::Tga | Self::Pnm | Self::Farbfeld
         )
     }
+
+    /// HDR対応かどうか
+    pub fn supports_hdr(self) -> bool {
+        matches!(self, Self::Hdr | Self::OpenExr | Self::Tiff)
+    }
 }
