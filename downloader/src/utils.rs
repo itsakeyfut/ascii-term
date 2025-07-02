@@ -24,4 +24,16 @@ impl UrlValidator {
             false
         }
     }
+
+    /// YouTube URLかチェック
+    pub fn is_youtube_url(url: &str) -> bool {
+        if let Ok(parsed) = Url::parse(url) {
+            if let Some(domain) = parsed.domain() {
+                return domain.contains("youtube.com")
+                    || domain.contains("youtu.be")
+                    || domain.contains("youtube-nocookie.com");
+            }
+        }
+        false
+    }
 }
