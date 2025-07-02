@@ -85,3 +85,9 @@ pub enum ImageFilter {
     /// ネガティブ（反転）
     Invert,
 }
+
+/// 画像プロセッサー
+pub struct ImageProcessor {
+    config: ImageProcessorConfig,
+    resizer: fr::Resizer,
+}
