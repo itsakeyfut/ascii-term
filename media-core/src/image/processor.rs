@@ -307,6 +307,39 @@ impl ImageProcessor {
         let amount = amount.clamp(0.0, 2.0);
         Ok(image.unsharpen(amount, 1))
     }
+
+    /// セピア調
+    fn sepia(&self, image: &DynamicImage) -> Result<DynamicImage> {
+        let rgb_image = image.to_rgb8();
+        let mut new_data = Vec::with_capacity(rgb_image.len());
+
+
+        for pixel in rgb_image.pixels() {
+            let [r, g, b] = pixel.0;
+            let r_f = r as f32;
+            let g_f = g as f32;
+            let b_f = b as f32;
+
+            let new_r = ((r_f * 0.393) + (g_f * 0.769) + (b_f * 0.189)).min(255.0) as u8;
+            let new_g = ((r_f * 0.349) + (g_f * 0.686) + (b_f * 0.168)).min(255.0) as u8;
+            let new_b = ((r_f * 0.272) + (g_f * 0.534) + (b_f * 0.131)).min(255.0) as u8;
+
+            new_data.push(new_r);
+            new_data.push(new_g);
+            new_data.push(new_b);
+        }
+
+        let new_image = ImageBuffer::from_raw(image.width(), image.height(), new_data)
+            .ok_or_else(|| MediaError::Image(
+                image::ImageError::Parameter(
+                    image::error::ParameterError::from_kind(
+                        image::error::ParameterErrorKind::DimensionMismatch
+                    )
+                )
+            ))?;
+
+        Ok(DynamicImage::ImageRgb8(new_image))
+    }
 }
 
 /// RGB to HSV 変換
