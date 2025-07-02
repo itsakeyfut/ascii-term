@@ -255,4 +255,23 @@ impl FormatDetector {
     pub fn is_suppored<P: AsRef<Path>>(path: P) -> bool {
         Self::detect_format(path).is_some()
     }
+
+    /// 利用可能な全形式のリストを取得
+    pub fn supported_formats() -> Vec<SupportedImageFormat> {
+        vec![
+            SupportedImageFormat::Png,
+            SupportedImageFormat::Jpeg,
+            SupportedImageFormat::Gif,
+            SupportedImageFormat::WebP,
+            SupportedImageFormat::Bmp,
+            SupportedImageFormat::Ico,
+            SupportedImageFormat::Tiff,
+            SupportedImageFormat::Tga,
+            SupportedImageFormat::Dds,
+            SupportedImageFormat::Hdr,
+            SupportedImageFormat::OpenExr,
+            SupportedImageFormat::Pnm,
+            SupportedImageFormat::Farbfeld,
+        ]
+    }
 }
