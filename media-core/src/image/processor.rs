@@ -162,4 +162,24 @@ impl ImageProcessor {
 
         Ok(DynamicImage::ImageRgb8(resized_buffer))
     }
+
+    /// アスペクト比を保持してリサイズ
+    pub fn resize_preserve_aspect(
+        &mut self,
+        image: &DynamicImage,
+        max_width: u32,
+        max_height: u32,
+        algorithm: Option<ResizeAlgorithm>,
+    ) -> Result<DynamicImage> {
+        let (orig_width, orig_height) = (image.width(), image.height());
+
+        let scale_x = max_width as f64 / orig_width as f64;
+        let scale_y = max_height as f64 / orig_height as f64;
+        let scale = scale_x.min(scale_y);
+
+        let new_width = (orig_width as f64 * scale) as u32;
+        let new_height = (orig_height as f64 * scale) as u32;
+
+        self.resize(image, new_width, new_height, algorithm)
+    }
 }
