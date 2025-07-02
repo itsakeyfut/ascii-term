@@ -93,3 +93,18 @@ impl SupportedImageFormat {
         matches!(self, Self::Hdr | Self::OpenExr | Self::Tiff)
     }
 }
+
+/// カラータイプ
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub enum ColorType {
+    L8,      // グレースケール 8-bit
+    L16,     // グレースケール 16-bit
+    La8,     // グレースケール + アルファ 8-bit
+    La16,    // グレースケール + アルファ 16-bit
+    Rgb8,    // RGB 8-bit
+    Rgb16,   // RGB 16-bit
+    Rgba8,   // RGBA 8-bit
+    Rgba16,  // RGBA 16-bit
+    Rgb32F,  // RGB 32-bit float
+    Rgba32F, // RGBA 32-bit float
+}
