@@ -74,4 +74,9 @@ impl SupportedImageFormat {
     pub fn supports_animation(self) -> bool {
         matches!(self, Self::Gif | Self::WebP)
     }
+
+    /// 透明度対応かどうか
+    pub fn supports_transparency(self) -> bool {
+        matches!(self, Self::Png | Self::Gif | Self::WebP | Self::Ico | Self::Tiff)
+    }
 }
