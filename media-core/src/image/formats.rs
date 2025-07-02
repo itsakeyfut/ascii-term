@@ -145,4 +145,9 @@ impl ColorType {
             Self::Rgb32F | Self::Rgba32F => 32,
         }
     }
+
+    /// アルファチャンネルがあるかどうか
+    pub fn has_alpha(self) -> bool {
+        matches!(self, Self::La8 | Self::La16 | Self::Rgba8 | Self::Rgba16 | Self::Rgba32F)
+    }
 }
