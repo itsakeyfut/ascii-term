@@ -3,7 +3,7 @@ use std::path::PathBuf;
 use tempfile::NamedTempFile;
 use tokio::process::Command;
 
-use crate::errrors::{DownloaderError, Result};
+use crate::errors::{DownloaderError, Result};
 
 /// YouTube動画をダウンロード
 pub async fn download_video(url: &str, browser: &str) -> Result<PathBuf> {
@@ -55,7 +55,7 @@ pub async fn get_video_info(url: &str) -> Result<VideoInfo> {
 
     if !output.status.success() {
         let error_msg = String::from_utf8_lossy(&output.stderr);
-        return Err(DownloaderError::Donwload(format!(
+        return Err(DownloaderError::Download(format!(
             "Failed to get video info: {}",
             error_msg
         )));
