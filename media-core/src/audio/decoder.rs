@@ -133,3 +133,43 @@ pub struct AudioStreamInfo {
     pub duration: Option<Duration>,
     pub bit_rate: Option<i64>,
 }
+
+impl AudioStreamInfo {
+    /// FFmpeg ストリームから情報を抽出
+    pub fn from_stream(stream: &ffmpeg::Stream) -> Result<Self> {
+        let context = ffmpeg::codec::context::Context::from_parameters(stream.parameters())?;
+
+        let decoder = context.decoder().audio()
+            .map_err(|_| MediaError::Audio("Failed to get audio decoder".to_string()))?;
+        
+        let codec_name = format!("{:?}", decoder.codec().map(|c| format!("{:?}", c.id())));
+        let sample_rate = decoder.rate();
+        let channels = decoder.channels() as u16;
+        let sample_format = AudioFormat::from_ffmpeg_format(decoder.format())
+            .map_err(|_| MediaError::Audio("Invalid sample format".to_string()))?;
+
+        let duration = if stream.duration() != ffmpeg_next::ffi::AV_NOPTS_VALUE {
+            let time_base = stream.time_base();
+            let seconds = stream.duration() as f64 * time_base.numerator() as f64 / time_base.denominator() as f64;
+            Some(Duration::from_secs_f64(seconds))
+        } else {
+            None
+        };
+
+        let bit_rate = if decoder.bit_rate() > 0 {
+            Some(decoder.bit_rate() as i64)
+        } else {
+            None
+        };
+
+        Ok(AudioStreamInfo {
+            index: stream.index(),
+            codec_name,
+            sample_rate,
+            channels,
+            sample_format,
+            duration,
+            bit_rate,
+        })
+    }
+}
