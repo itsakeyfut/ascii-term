@@ -32,3 +32,11 @@ pub enum ImageQuality {
     High,
     Maximum,
 }
+
+/// カラープロファイル
+#[derive(Debug, Clone, Copy)]
+pub enum ColorProfile {
+    SRGB,
+    Linear,
+    Rec709,
+}
