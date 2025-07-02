@@ -69,4 +69,9 @@ impl SupportedImageFormat {
             Self::Farbfeld => Some(ImageFormat::Farbfeld),
         }
     }
+
+    /// アニメーション対応かどうか
+    pub fn supports_animation(self) -> bool {
+        matches!(self, Self::Gif | Self::WebP)
+    }
 }
