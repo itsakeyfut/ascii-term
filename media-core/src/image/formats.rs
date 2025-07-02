@@ -136,4 +136,13 @@ impl ColorType {
             Self::Rgba8 | Self::Rgba16 | Self::Rgba32F => 4,
         }
     }
+
+    ///  チャンネルあたりのビット数
+    pub fn bits_per_channel(self) -> u8 {
+        match self {
+            Self::L8 | Self::La8 | Self::Rgb8 | Self::Rgba8 => 8,
+            Self::L16 | Self::La16 | Self::Rgb16 | Self::Rgba16 => 16,
+            Self::Rgb32F | Self::Rgba32F => 32,
+        }
+    }
 }
