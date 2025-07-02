@@ -108,3 +108,22 @@ pub enum ColorType {
     Rgb32F,  // RGB 32-bit float
     Rgba32F, // RGBA 32-bit float
 }
+
+impl ColorType {
+    /// image クレートの ColorType から変換
+    pub fn from_image_color_type(color_type: image::ColorType) -> Self {
+        match color_type {
+            image::ColorType::L8 => Self::L8,
+            image::ColorType::L16 => Self::L16,
+            image::ColorType::La8 => Self::La8,
+            image::ColorType::La16 => Self::La16,
+            image::ColorType::Rgb8 => Self::Rgb8,
+            image::ColorType::Rgb16 => Self::Rgb16,
+            image::ColorType::Rgba8 => Self::Rgba8,
+            image::ColorType::Rgba16 => Self::Rgba16,
+            image::ColorType::Rgb32F => Self::Rgb32F,
+            image::ColorType::Rgba32F => Self::Rgba32F,
+            _ => Self::Rgb8, // フォールバック
+        }
+    }
+}
