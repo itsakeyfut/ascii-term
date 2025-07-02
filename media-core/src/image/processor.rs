@@ -100,4 +100,9 @@ impl ImageProcessor {
             resizer: fr::Resizer::new(),
         }
     }
+
+    /// 設定を更新
+    pub fn update_config(&mut self, config: ImageProcessorConfig) {
+        self.config = config;
+    }
 }
