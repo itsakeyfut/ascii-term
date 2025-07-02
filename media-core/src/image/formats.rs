@@ -42,4 +42,12 @@ impl SupportedImageFormat {
             _ => None,
         }
     }
+
+    /// ファイルパスから形式を推測
+    pub fn from_path<P: AsRef<Path>>(path: P) -> Option<Self> {
+        path.as_ref()
+            .extension()
+            .and_then(|ext| ext.to_str())
+            .and_then(Self::from_extension)
+    }
 }
