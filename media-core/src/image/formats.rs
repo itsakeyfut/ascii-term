@@ -50,4 +50,23 @@ impl SupportedImageFormat {
             .and_then(|ext| ext.to_str())
             .and_then(Self::from_extension)
     }
+
+    /// image クレートの ImageFormat に変換
+    pub fn to_image_format(self) -> Option<ImageFormat> {
+        match self {
+            Self::Png => Some(ImageFormat::Png),
+            Self::Jpeg => Some(ImageFormat::Jpeg),
+            Self::Gif => Some(ImageFormat::Gif),
+            Self::WebP => Some(ImageFormat::WebP),
+            Self::Bmp => Some(ImageFormat::Bmp),
+            Self::Ico => Some(ImageFormat::Ico),
+            Self::Tiff => Some(ImageFormat::Tiff),
+            Self::Tga => Some(ImageFormat::Tga),
+            Self::Dds => Some(ImageFormat::Dds),
+            Self::Hdr => Some(ImageFormat::Hdr),
+            Self::OpenExr => Some(ImageFormat::OpenExr),
+            Self::Pnm => Some(ImageFormat::Pnm),
+            Self::Farbfeld => Some(ImageFormat::Farbfeld),
+        }
+    }
 }
