@@ -94,6 +94,20 @@ impl SupportedImageFormat {
     }
 }
 
+/// 画像メタデータ
+#[derive(Debug, Clone)]
+pub struct ImageMetadata {
+    pub width: u32,
+    pub height: u32,
+    pub format: SupportedImageFormat,
+    pub color_type: ColorType,
+    pub bit_depth: u8,
+    pub has_alpha: bool,
+    pub is_animated: bool,
+    pub frame_count: Option<usize>,
+    pub file_size: Option<u64>,
+}
+
 /// カラータイプ
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub enum ColorType {
