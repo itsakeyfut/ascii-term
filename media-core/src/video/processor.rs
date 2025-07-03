@@ -180,4 +180,28 @@ impl VideoProcessor {
 
         VideoFrame::from_opencv_mat(&adjusted, frame.timestamp, frame.pts)
     }
+
+    /// 回転を適用
+    fn apply_rotation(&self, frame: VideoFrame, angle: f64) -> Result<VideoFrame> {
+        let mat = frame.to_opencv_mat()?;
+        let center = opencv::core::Point2f::new(
+            frame.width as f32 / 2.0,
+            frame.height as f32 / 2.0,
+        );
+
+        let rotation_matrix = imgproc::get_rotation_matrix_2d(center, angle, 1.0)?;
+        let mut rotated = Mat::default();
+
+        imgproc::warp_affine(
+            &mat,
+            &mut rotated,
+            &rotation_matrix,
+            opencv::core::Size::new(frame.width as i32, frame.height as i32),
+            imgproc::INTER_LINEAR,
+            opencv::core::BORDER_CONSTANT,
+            opencv::core::Scalar::default(),
+        )?;
+
+        VideoFrame::from_opencv_mat(&rotated, frame.timestamp, frame.pts)
+    }
 }
