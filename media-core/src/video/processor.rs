@@ -69,6 +69,31 @@ impl VideoProcessor {
         self.config = config;
     }
 
+    /// フレームを処理
+    pub fn process_frame(&mut self, frame: VideoFrame) -> Result<()> {
+        let mut processed_frame = frame;
+
+        // フィルターチェーンを適用
+        for filter in &self.config.filter_chain {
+            processed_frame = self.apply_filter(processed_frame, filter)?;
+        }
+
+        // 出力形式に変換（必要に応じて）
+        if processed_frame.format != self.config.output_format {
+            processed_frame = self.convert_format(processed_frame, self.config.output_format)?;
+        }
+
+        // バッファに追加
+        self.buffer.push_back(processed_frame);
+
+        // バッファサイズを制限
+        while self.buffer.len() > self.config.buffer_size {
+            self.buffer.pop_front();
+        }
+
+        Ok(())
+    }
+
     /// フィルターを適用
     fn apply_filter(&self, frame: VideoFrame, filter: &VideoFilter) -> Result<VideoFrame> {
         match filter {
