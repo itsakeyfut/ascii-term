@@ -23,6 +23,7 @@ rodio = "0.20.1"
 # 非同期・並行処理
 tokio = { version = "1.0", features = ["full"] }
 crossbeam-channel = "0.5.15"
+futures-util = "0.3.31"
 
 # ユーティリティ
 anyhow = "1.0"
@@ -37,7 +38,7 @@ clap = { version = "4.5.40", features = ["derive"] }
 # ファイル操作
 tempfile = "3.20.0"
 url = "2.5.4"
-reqwest = { version = "0.12.20", features = ["blocking"] }
+reqwest = { version = "0.12.20", features = ["blocking", "stream"] }
 
 # 数値計算
 num = "0.4.3"

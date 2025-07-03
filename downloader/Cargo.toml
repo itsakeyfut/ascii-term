@@ -6,6 +6,7 @@ edition = "2024"
 [dependencies]
 # 非同期処理
 tokio = { workspace = true }
+futures-util = { workspace = true }
 
 # エラーハンドリング
 anyhow = { workspace = true }
