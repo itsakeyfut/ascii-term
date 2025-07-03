@@ -234,6 +234,32 @@ impl FileDownloader {
 pub struct FileNameGenerator;
 
 impl FileNameGenerator {
+    /// URLから適切なファイル名を生成
+    pub fn generate_from_url(url: &str, default_extension: Option<&str>) -> String {
+        if let Ok(parsed_url) = Url::parse(url) {
+            // URLのパスからファイル名を抽出
+            if let Some(segments) = parsed_url.path_segments() {
+                if let Some(filename) = segments.last() {
+                    if !filename.is_empty() && filename.contains('.') {
+                        return Self::sanitize_filename(filename);
+                    }
+                }
+            }
+        }
+
+        // URLからファイル名を抽出できない場合
+        let timestamp = std::time::SystemTime::now()
+            .duration_since(std::time::UNIX_EPOCH)
+            .unwrap_or_default()
+            .as_secs();
+
+        if let Some(ext) = default_extension {
+            format!("download_{}.{}", timestamp, ext)
+        } else {
+            format!("download_{}", timestamp)
+        }
+    }
+
     /// ファイル名をサニタイズ（安全な文字のみ）
     pub fn sanitize_filename(filename: &str) -> String {
         filename
