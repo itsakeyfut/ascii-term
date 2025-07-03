@@ -204,4 +204,20 @@ impl VideoProcessor {
 
         VideoFrame::from_opencv_mat(&rotated, frame.timestamp, frame.pts)
     }
+
+    /// 反転を適用
+    fn apply_flip(&self, frame: VideoFrame, horizontal: bool, vertical: bool) -> Result<VideoFrame> {
+        let mat = frame.to_opencv_mat()?;
+        let mut flipped = mat.clone();
+
+        if horizontal && vertical {
+            opencv::core::flip(&mat, &mut flipped, -1)?; // 両方向
+        } else if horizontal {
+            opencv::core::flip(&mat, &mut flipped, 1)?; // 水平
+        } else if vertical {
+            opencv::core::flip(&mat, &mut flipped, 0)?; // 垂直
+        }
+
+        VideoFrame::from_opencv_mat(&flipped, frame.timestamp, frame.pts)
+    }
 }
