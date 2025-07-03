@@ -36,12 +36,14 @@ pub enum VideoFilter {
     /// ガウシアンブラー
     GaussianBlur { kernel_size: i32, sigma: f64 },
     /// エッジ検出
-    EdgeDetection { threshold: f64, threshold2: f64 },
+    EdgeDetection { threshold1: f64, threshold2: f64 },
     /// ヒストグラム均一化
     HistogramEqualization,
     /// 色調整
     ColorAdjust { brightness: f32, contrast: f32, saturation: f32 },
     /// 回転
+    Rotate { angle: f64 },
+    /// 反転
     Flip { horizontal: bool, vertical: bool },
     /// クロップ
     Crop { x: u32, y: u32, width: u32, height: u32 },
@@ -65,6 +67,39 @@ impl VideoProcessor {
     /// 設定を更新
     pub fn update_config(&mut self, config: VideoProcessorConfig) {
         self.config = config;
+    }
+
+    /// フィルターを適用
+    fn apply_filter(&self, frame: VideoFrame, filter: &VideoFilter) -> Result<VideoFrame> {
+        match filter {
+            VideoFilter::Resize { width, height } => {
+                frame.resize(*width, *height)
+            }
+            VideoFilter::ColorConvert { target_format } => {
+                self.convert_format(frame, *target_format)
+            }
+            VideoFilter::GaussianBlur { kernel_size, sigma } => {
+                self.apply_gaussian_blur(frame, *kernel_size, *sigma)
+            }
+            VideoFilter::EdgeDetection { threshold1, threshold2 } => {
+                self.apply_edge_detection(frame, *threshold1, *threshold2)
+            }
+            VideoFilter::HistogramEqualization => {
+                self.apply_histogram_equalization(frame)
+            }
+            VideoFilter::ColorAdjust { brightness, contrast, saturation } => {
+                self.apply_color_adjustment(frame, *brightness, *contrast, *saturation)
+            }
+            VideoFilter::Rotate { angle } => {
+                self.apply_rotation(frame, *angle)
+            }
+            VideoFilter::Flip { horizontal, vertical } => {
+                self.apply_flip(frame, *horizontal, *vertical)
+            }
+            VideoFilter::Crop { x, y, width, height } => {
+                self.apply_crop(frame, *x, *y, *width, *height)
+            }
+        }
     }
 
     /// 形式変換
