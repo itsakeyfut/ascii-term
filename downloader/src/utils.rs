@@ -358,3 +358,50 @@ pub enum MediaType {
     Image,
     Unknown,
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_url_validator() {
+        assert!(UrlValidator::is_valid_url("https://example.com/video.mp4"));
+        assert!(UrlValidator::is_http_url("https://example.com"));
+        assert!(!UrlValidator::is_http_url("ftp://example.com"));
+        
+        assert!(UrlValidator::is_youtube_url("https://www.youtube.com/watch?v=123"));
+        assert!(UrlValidator::is_youtube_url("https://youtu.be/123"));
+        assert!(!UrlValidator::is_youtube_url("https://example.com"));
+        
+        assert!(UrlValidator::is_direct_media_url("https://example.com/video.mp4"));
+        assert!(!UrlValidator::is_direct_media_url("https://example.com/page.html"));
+    }
+
+    #[test]
+    fn test_filename_generator() {
+        let filename = FileNameGenerator::generate_from_url(
+            "https://example.com/test.mp4", 
+            Some("mp4")
+        );
+        assert!(filename.contains("test.mp4") || filename.contains("download_"));
+
+        let sanitized = FileNamegenerator::sanitize_filename("test<>file.mp4");
+        assert_eq!(sanitized, "test__file.mp4");
+    }
+
+    #[test]
+    fn test_media_type_detector() {
+        assert_eq!(
+            MediaTypeDetector::detect_from_url("https://www.youtube.com/watch?v=123"),
+            MediaType::Video
+        );
+        assert_eq!(
+            MediaTypeDetector::detect_from_url("https://example.com/song.mp3"),
+            MediaType::Audio
+        );
+        assert_eq!(
+            MediaTypeDetector::detect_from_url("https://example.com/image.jpg"),
+            MediaType::Image
+        );
+    }
+}
