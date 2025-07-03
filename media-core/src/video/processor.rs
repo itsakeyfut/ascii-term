@@ -5,6 +5,27 @@ use opencv::{core::Mat, prelude::*, imgproc};
 use crate::errors::{MediaError, Result};
 use crate::video::frame::{VideoFrame, FrameFormat};
 
+/// ビデオ処理設定
+#[derive(Debug, Clone)]
+pub struct VideoProcessorConfig {
+    /// バッファサイズ
+    pub buffer_size: usize,
+    /// デフォルトの出力形式
+    pub output_format: FrameFormat,
+    /// フィルターチェーン
+    pub filter_chain: Vec<VideoFilter>,
+}
+
+impl Default for VideoProcessorConfig {
+    fn default() -> Self {
+        Self {
+            buffer_size: 10,
+            output_format: FrameFormat::RGB8,
+            filter_chain: Vec::new(),
+        }
+    }
+}
+
 /// ビデオフィルター
 #[derive(Debug, Clone)]
 pub enum VideoFilter {
