@@ -136,4 +136,37 @@ impl VideoProcessor {
 
         VideoFrame::from_opencv_mat(&edges, frame.timestamp, frame.pts)
     }
+
+    /// ヒストグラム均一化を適用
+    fn apply_histogram_equalization(&self, frame: VideoFrame) -> Result<VideoFrame> {
+        let mat = frame.to_opencv_mat()?;
+        
+        let result_mat = if frame.format == FrameFormat::Gray8 {
+            // グレースケール画像の場合
+            let mut equalized = Mat::default();
+            imgproc::equalize_hist(&mat, &mut equalized)?;
+            equalized
+        } else {
+            // カラー画像の場合はYUVに変換してY成分のみ均一化
+            let mut yuv = Mat::default();
+            imgproc::cvt_color(&mat, &mut yuv, imgproc::COLOR_BGR2YUV, 0)?;
+            
+            let mut channels = opencv::core::Vector::<Mat>::new();
+            opencv::core::split(&yuv, &mut channels)?;
+            
+            let mut y_equalized = Mat::default();
+            imgproc::equalize_hist(&channels.get(0)?, &mut y_equalized)?;
+            
+            channels.set(0, y_equalized)?;
+            
+            let mut yuv_equalized = Mat::default();
+            opencv::core::merge(&channels, &mut yuv_equalized)?;
+            
+            let mut bgr_equalized = Mat::default();
+            imgproc::cvt_color(&yuv_equalized, &mut bgr_equalized, imgproc::COLOR_YUV2BGR, 0)?;
+            bgr_equalized
+        };
+
+        VideoFrame::from_opencv_mat(&result_mat, frame.timestamp, frame.pts)
+    }
 }
