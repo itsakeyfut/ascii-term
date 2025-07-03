@@ -229,3 +229,24 @@ impl FileDownloader {
         }
     }
 }
+
+/// ファイル名生成ユーティリティ
+pub struct FileNameGenerator;
+
+impl FileNameGenerator {
+    /// ファイル名をサニタイズ（安全な文字のみ）
+    pub fn sanitize_filename(filename: &str) -> String {
+        filename
+            .chars()
+            .map(|c| {
+                if c.is_alphanumeric() || matches!(c, '.' | '-' | '_' | ' ') {
+                    c
+                } else {
+                    '_'
+                }
+            })
+            .collect::<String>()
+            .trim()
+            .to_string()
+    }
+}
