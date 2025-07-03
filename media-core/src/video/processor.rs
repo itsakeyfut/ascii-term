@@ -100,4 +100,21 @@ impl VideoProcessor {
 
         VideoFrame::from_opencv_mat(&converted_mat, frame.timestamp, frame.pts)
     }
+
+    /// ガウシアンブラーを適用
+    fn apply_gaussian_blur(&self, frame: VideoFrame, kernel_size: i32, sigma: f64) -> Result<VideoFrame> {
+        let mat = frame.to_opencv_mat()?;
+        let mut blurred = Mat::default();
+
+        imgproc::gaussian_blur(
+            &mat,
+            &mut blurred,
+            opencv::core::Size::new(kernel_size, kernel_size),
+            sigma,
+            sigma,
+            opencv::core::BORDER_DEFAULT,
+        )?;
+
+        VideoFrame::from_opencv_mat(&blurred, frame.timestamp, frame.pts)
+    }
 }
