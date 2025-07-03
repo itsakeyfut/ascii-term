@@ -199,4 +199,33 @@ impl FileDownloader {
 
         Ok(temp_file)
     }
+
+    /// ファイルサイズを取得（ダウンロードせずに）
+    pub async fn get_file_size(url: &str) -> Result<Option<u64>> {
+        if !UrlValidator::is_http_url(url) {
+            return Err(DownloaderError::Unsupported(format!("Invalid URL: {}", url)));
+        }
+
+        let client = reqwest::Client::builder()
+            .user_agent("Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36")
+            .timeout(std::time::Duration::from_secs(10))
+            .build()
+            .map_err(|e| DownloaderError::Network(e))?;
+
+        let response = client
+            .head(url)
+            .send()
+            .await
+            .map_err(|e| DownloaderError::Network(e))?;
+
+        if response.status().is_success() {
+            Ok(response.content_length())
+        } else {
+            Err(DownloaderError::Download(format!(
+                "HTTP error: {} for URL: {}",
+                response.status(),
+                url
+            )))
+        }
+    }
 }
