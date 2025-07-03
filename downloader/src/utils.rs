@@ -142,4 +142,61 @@ impl FileDownloader {
 
         Ok(())
     }
+
+    /// プログレスコードバック付きでダウンロード
+    pub async fn download_with_progress<F>(
+        url: &str,
+        mut progress_callback: F,
+    ) -> Result<NamedTempFile>
+    where
+        F: FnMut(u64, Option<u64>),
+    {
+        if !UrlValidator::is_http_url(url) {
+            return Err(DownloaderError::Unsupported(format!("Invalid URL: {}", url)));
+        }
+
+        let client = reqwest::Client::builder()
+            .user_agent("Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36")
+            .timeout(std::time::Duration::from_secs(60))
+            .build()
+            .map_err(|e| DownloaderError::Network(e))?;
+
+        let response = client
+            .get(url)
+            .send()
+            .await
+            .map_err(|e| DownloaderError::Network(e))?;
+
+        if !response.status().is_success() {
+            return Err(DownloaderError::Download(format!(
+                "HTTP error: {} for URL: {}",
+                response.status(),
+                url
+            )));
+        }
+
+        let total_size = response.content_length();
+        let mut temp_file = NamedTempFile::new()
+            .map_err(|e| DownloaderError::Io(e))?;
+
+        let mut downloaded = 0u64;
+        let mut stream = response.bytes_stream();
+
+        use futures_util::StreamExt;
+        while let Some(chunk) = stream.next().await {
+            let chunk = chunk.map_err(|e| DownloaderError::Network(e))?;
+            temp_file
+                .write_all(&chunk)
+                .map_err(|e| DownloaderError::Io(e))?;
+            
+            downloaded += chunk.len() as u64;
+            progress_callback(downloaded, total_size);
+        }
+
+        temp_file
+            .flush()
+            .map_err(|e| DownloaderError::Io(e))?;
+
+        Ok(temp_file)
+    }
 }
