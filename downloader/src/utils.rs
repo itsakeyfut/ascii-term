@@ -77,3 +77,37 @@ impl UrlValidator {
         false
     }
 }
+
+/// ファイルダウンロードユーティリティ
+
+impl FileDownloader {
+    /// URLからファイルをダウンロード
+    pub async fn download_to_temp(url: &str) -> Result<NamedTempFile> {
+        // URL検証
+        if !UrlValidator::is_http_url(url) {
+            return Err(DownloaderError::Unsupported(format!("Invalid URL: {}", url)));
+        }
+
+        // HTTPクライアントを作成
+        let client = reqwest::Client::builder()
+            .user_agent("Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36")
+            .timeout(std::time::Duration::from_secs(30))
+            .build()
+            .map_err(|e| DownloaderError::Network(e))?;
+
+        // ファイルをダウンロード
+        let response = client
+            .get(url)
+            .send()
+            .await
+            .map_err(|e| DownloaderError::Network(e))?;
+
+        if !response.status().is_success() {
+            return Err(DownloaderError::Download(format!(
+                "HTTP error: {} for URL: {}",
+                response.status(),
+                url
+            )));
+        }
+    }
+}
