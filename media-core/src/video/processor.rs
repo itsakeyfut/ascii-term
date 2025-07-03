@@ -99,6 +99,11 @@ impl VideoProcessor {
         self.buffer.pop_front()
     }
 
+    /// バッファ内のフレーム数
+    pub fn buffer_size(&self) -> usize {
+        self.buffer.len()
+    }
+
     /// フィルターを適用
     fn apply_filter(&self, frame: VideoFrame, filter: &VideoFilter) -> Result<VideoFrame> {
         match filter {
