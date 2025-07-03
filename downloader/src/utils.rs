@@ -79,13 +79,14 @@ impl UrlValidator {
 }
 
 /// ファイルダウンロードユーティリティ
+pub struct FileDownloader;
 
 impl FileDownloader {
     /// URLからファイルをダウンロード
     pub async fn download_to_temp(url: &str) -> Result<NamedTempFile> {
         // URL検証
         if !UrlValidator::is_http_url(url) {
-            return Err(DownloaderError::Unsupported(format!("Invalid URL: {}", url)));
+            return Err(DownloaderError::UnsupportedUrl(format!("Invalid URL: {}", url)));
         }
 
         // HTTPクライアントを作成
@@ -112,7 +113,7 @@ impl FileDownloader {
 
         // 一時ファイルを作成
         let mut temp_file = NamedTempFile::new()
-            .map_err(|e| DownlaoderError::Io(e))?;
+            .map_err(|e| DownloaderError::Io(e))?;
 
         // レスポンスボディを一時ファイルに書き込み
         let content = response
@@ -129,5 +130,16 @@ impl FileDownloader {
             .map_err(|e| DownloaderError::Io(e))?;
 
         Ok(temp_file)
+    }
+
+    /// URLからファイルを指定パスにダウンロード
+    pub async fn download_to_path<P: AsRef<Path>>(url: &str, path: P) -> Result<()> {
+        let temp_file = Self::download_to_temp(url).await?;
+        
+        // 一時ファイルを指定パスにコピー
+        std::fs::copy(temp_file.path(), &path)
+            .map_err(|e| DownloaderError::Io(e))?;
+
+        Ok(())
     }
 }
