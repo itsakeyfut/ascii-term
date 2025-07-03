@@ -104,6 +104,11 @@ impl VideoProcessor {
         self.buffer.len()
     }
 
+    /// バッファをクリア
+    pub fn clear_buffer(&mut self) {
+        self.buffer.clear();
+    }
+
     /// フィルターを適用
     fn apply_filter(&self, frame: VideoFrame, filter: &VideoFilter) -> Result<VideoFrame> {
         match filter {
