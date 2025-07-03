@@ -109,5 +109,25 @@ impl FileDownloader {
                 url
             )));
         }
+
+        // 一時ファイルを作成
+        let mut temp_file = NamedTempFile::new()
+            .map_err(|e| DownlaoderError::Io(e))?;
+
+        // レスポンスボディを一時ファイルに書き込み
+        let content = response
+            .bytes()
+            .await
+            .map_err(|e| DownloaderError::Network(e))?;
+
+        temp_file
+            .write_all(&content)
+            .map_err(|e| DownloaderError::Io(e))?;
+
+        temp_file
+            .flush()
+            .map_err(|e| DownloaderError::Io(e))?;
+
+        Ok(temp_file)
     }
 }
