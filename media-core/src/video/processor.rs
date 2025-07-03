@@ -94,6 +94,11 @@ impl VideoProcessor {
         Ok(())
     }
 
+    /// 次のフレームを取得
+    pub fn next_frame(&mut self) -> Option<VideoFrame> {
+        self.buffer.pop_front()
+    }
+
     /// フィルターを適用
     fn apply_filter(&self, frame: VideoFrame, filter: &VideoFilter) -> Result<VideoFrame> {
         match filter {
