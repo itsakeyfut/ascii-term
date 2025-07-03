@@ -109,6 +109,11 @@ impl VideoProcessor {
         self.buffer.clear();
     }
 
+    /// フィルターを追加
+    pub fn add_filter(&mut self, filter: VideoFilter) {
+        self.config.filter_chain.push(filter);
+    }
+
     /// フィルターを適用
     fn apply_filter(&self, frame: VideoFrame, filter: &VideoFilter) -> Result<VideoFrame> {
         match filter {
