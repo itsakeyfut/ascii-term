@@ -282,7 +282,7 @@ impl FileNameGenerator {
         let mut candidate = filename.to_string();
         let mut cnt = 1;
 
-        while base_path.join(&condidate).exists() {
+        while base_path.join(&candidate).exists() {
             if let Some(pos) = filename.rfind('.') {
                 let (name, ext) = filename.split_at(pos);
                 candidate = format!("{}_{}{}", name, cnt, ext);
