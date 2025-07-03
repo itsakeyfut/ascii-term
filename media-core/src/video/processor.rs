@@ -322,3 +322,29 @@ impl VideoProcessor {
         VideoFrame::from_opencv_mat(&cropped.clone_pointee(), frame.timestamp, frame.pts)
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use std::time::Duration;
+
+    #[test]
+    fn test_video_processor_creation() {
+        let config = VideoProcessorConfig::default();
+        let processor = VideoProcessor::new(config);
+        assert_eq!(processor.buffer_size(), 0);
+    }
+
+    #[test]
+    fn test_filter_chain() {
+        let mut config = VideoProcessorConfig::default();
+        config.filter_chain.push(VideoFilter::Resize { width: 640, height: 480 });
+        config.filter_chain.push(VideoFilter::GaussianBlur { kernel_size: 5, sigma: 1.0 });
+
+        let mut processor = VideoProcessor::new(config);
+        assert_eq!(processor.config.filter_chain.len(), 2);
+
+        processor.clear_filters();
+        assert_eq!(processor.config.filter_chain.len(), 0);
+    }
+}
