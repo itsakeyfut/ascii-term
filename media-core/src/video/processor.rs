@@ -117,4 +117,23 @@ impl VideoProcessor {
 
         VideoFrame::from_opencv_mat(&blurred, frame.timestamp, frame.pts)
     }
+
+    /// エッジ検出を適用
+    fn apply_edge_detection(&self, frame: VideoFrame, threshold1: f64, threshold2: f64) -> Result<VideoFrame> {
+        let mat = frame.to_opencv_mat()?;
+
+        // グレースケールに変換
+        let mut gray = Mat::default();
+        if frame.format != FrameFormat::Gray8 {
+            imgproc::cvt_color(&mat, &mut gray, imgproc::COLOR_BGR2GRAY, 0)?;
+        } else {
+            gray = mat;
+        }
+
+        // Cannyエッジ検出
+        let mut edges = Mat::default();
+        imgproc::canny(&gray, &mut edges, threshold1, threshold2, 3, false)?;
+
+        VideoFrame::from_opencv_mat(&edges, frame.timestamp, frame.pts)
+    }
 }
