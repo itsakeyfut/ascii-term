@@ -300,6 +300,21 @@ impl FileNameGenerator {
 pub struct MediaTypeDetector;
 
 impl MediaTypeDetector {
+    /// ファイル拡張子からメディアタイプを検出
+    fn detect_from_extension(url: &str) -> MediaType {
+        if let Ok(parsed) = Url::parse(url) {
+            if let Some(path) = parsed.path_segments() {
+                if let Some(last_segment) = path.last() {
+                    if let Some(ext) = last_segment.split('.').last() {
+                        return Self::classify_extension(ext);
+                    }
+                }
+            }
+        }
+
+        MediaType::Unknown
+    }
+
     /// 拡張子を分類
     fn classify_extension(ext: &str) -> MediaType {
         match ext.to_lowercase().as_str() {
