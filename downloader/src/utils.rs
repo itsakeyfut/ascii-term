@@ -295,3 +295,34 @@ impl FileNameGenerator {
         candidate
     }
 }
+
+/// メディアタイプ検出ユーティリティ
+pub struct MediaTypeDetector;
+
+impl MediaTypeDetector {
+    /// 拡張子を分類
+    fn classify_extension(ext: &str) -> MediaType {
+        match ext.to_lowercase().as_str() {
+            // 動画
+            "mp4" | "avi" | "mkv" | "mov" | "wmv" | "flv" | "webm" | "m4v" |
+            "3gp" | "ogv" | "ts" | "mts" | "m2ts" => MediaType::Video,
+            
+            // 音声
+            "mp3" | "wav" | "flac" | "aac" | "ogg" | "wma" | "m4a" | "opus" => MediaType::Audio,
+            
+            // 画像
+            "jpg" | "jpeg" | "png" | "gif" | "bmp" | "webp" | "tiff" | "svg" => MediaType::Image,
+            
+            _ => MediaType::Unknown,
+        }
+    }
+}
+
+/// メディアタイプ列挙型
+#[derive(Debug, Clone, PartialEq)]
+pub enum MediaType {
+    Video,
+    Audio,
+    Image,
+    Unknown,
+}
