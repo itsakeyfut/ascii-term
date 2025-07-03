@@ -300,6 +300,23 @@ impl FileNameGenerator {
 pub struct MediaTypeDetector;
 
 impl MediaTypeDetector {
+    /// URLからメディアタイプを推測
+    pub fn detect_from_url(url: &str) -> MediaType {
+        if UrlValidator::is_youtube_url(url) {
+            return MediaType::Video;
+        }
+
+        if UrlValidator::is_streaming_site(url) {
+            return MediaType::Video;
+        }
+
+        if UrlValidator::is_direct_media_url(url) {
+            return Self::detect_from_extension(url);
+        }
+
+        MediaType::Unknown
+    }
+
     /// ファイル拡張子からメディアタイプを検出
     fn detect_from_extension(url: &str) -> MediaType {
         if let Ok(parsed) = Url::parse(url) {
