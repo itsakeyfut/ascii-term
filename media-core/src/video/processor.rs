@@ -61,4 +61,9 @@ impl VideoProcessor {
             buffer: VecDeque::new(),
         }
     }
+
+    /// 設定を更新
+    pub fn update_config(&mut self, config: VideoProcessorConfig) {
+        self.config = config;
+    }
 }
