@@ -275,4 +275,23 @@ impl FileNameGenerator {
             .trim()
             .to_string()
     }
+
+    /// 一意なファイル名を生成
+    pub fn generate_unique<P: AsRef<Path>>(base_path: P, filename: &str) -> String {
+        let base_path = base_path.as_ref();
+        let mut candidate = filename.to_string();
+        let mut cnt = 1;
+
+        while base_path.join(&condidate).exists() {
+            if let Some(pos) = filename.rfind('.') {
+                let (name, ext) = filename.split_at(pos);
+                candidate = format!("{}_{}{}", name, cnt, ext);
+            } else {
+                candidate = format!("{}_{}", filename, cnt);
+            }
+            cnt += 1;
+        }
+
+        candidate
+    }
 }
