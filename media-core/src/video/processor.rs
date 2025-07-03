@@ -220,4 +220,20 @@ impl VideoProcessor {
 
         VideoFrame::from_opencv_mat(&flipped, frame.timestamp, frame.pts)
     }
+
+    /// クロップを適用
+    fn apply_crop(&self, frame: VideoFrame, x: u32, y: u32, width: u32, height: u32) -> Result<VideoFrame> {
+        let mat = frame.to_opencv_mat()?;
+        
+        // 境界チェック
+        let crop_x = x.min(frame.width - 1) as i32;
+        let crop_y = y.min(frame.height - 1) as i32;
+        let crop_width = width.min(frame.width - x) as i32;
+        let crop_height = height.min(frame.height - y) as i32;
+        
+        let roi = opencv::core::Rect::new(crop_x, crop_y, crop_width, crop_height);
+        let cropped = Mat::roi(&mat, roi)?;
+
+        VideoFrame::from_opencv_mat(&cropped.clone_pointee(), frame.timestamp, frame.pts)
+    }
 }
