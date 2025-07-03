@@ -46,3 +46,19 @@ pub enum VideoFilter {
     /// クロップ
     Crop { x: u32, y: u32, width: u32, height: u32 },
 }
+
+/// ビデオプロセッサー
+pub struct VideoProcessor {
+    config: VideoProcessorConfig,
+    buffer: VecDeque<VideoFrame>,
+}
+
+impl VideoProcessor {
+    /// 新しいビデオプロセッサーを作成
+    pub fn new(config: VideoProcessorConfig) -> Self {
+        Self {
+            config,
+            buffer: VecDeque::new(),
+        }
+    }
+}
