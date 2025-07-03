@@ -169,4 +169,15 @@ impl VideoProcessor {
 
         VideoFrame::from_opencv_mat(&result_mat, frame.timestamp, frame.pts)
     }
+
+    /// 色調整を適用
+    fn apply_color_adjustment(&self, frame: VideoFrame, brightness: f32, contrast: f32, _saturation: f32) -> Result<VideoFrame> {
+        let mat = frame.to_opencv_mat()?;
+        let mut adjusted = Mat::default();
+
+        // OpenCVのconvertToを使用して、ブライトネス・コントラスト調整
+        mat.convert_to(&mut adjusted, -1, contrast as f64, brightness as f64)?;
+
+        VideoFrame::from_opencv_mat(&adjusted, frame.timestamp, frame.pts)
+    }
 }
