@@ -123,7 +123,21 @@ impl Player {
 
     /// プレイヤーを実行
     pub async fn run(&mut self) -> Result<()> {
-        unimplemented!()
+        // ターミナルを初期化
+        let terminal = Terminal::new(
+            self.command_tx.clone(),
+            self.frame_rx.clone(),
+            self.config.grayscale,
+        )?;
+        self.terminal = Some(terminal);
+
+        // メディアタイプに応じて適切な再生方法を選択
+        match self.media_file.media_type {
+            MediaType::Video => self.play_video().await,
+            MediaType::Audio => self.play_audio().await,
+            MediaType::Image => self.display_image().await,
+            MediaType::Unknown => Err(anyhow::anyhow!("Unknown media type")),
+        }
     }
 
     /// 動画再生
