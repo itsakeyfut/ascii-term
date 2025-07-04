@@ -75,6 +75,11 @@ impl AudioProcessor {
     pub fn set_volume(&mut self, volume: f32) {
         self.config.volume = volume.clamp(0.0, 2.0);
     }
+
+    /// ミュート状態を設定
+    pub fn set_muted(&mut self, muted: bool) {
+        self.config.muted = muted;
+    }
 }
 
 /// 簡易理サンプラー
