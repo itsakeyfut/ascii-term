@@ -31,3 +31,21 @@ impl Default for AudioProcessorConfig {
         }
     }
 }
+
+/// オーディオプロセッサー
+pub struct AudioProcessor {
+    config: AudioProcessorConfig,
+    buffer: VecDeque<AudioFrame>,
+    resampler: Option<SimpleResampler>,
+}
+
+/// 簡易理サンプラー
+struct SimpleResampler {
+    input_sample_rate: u32,
+    input_channels: u16,
+    input_format: AudioFormat,
+    output_sample_rate: u32,
+    output_channels: u16,
+    output_format: AudioFormat,
+    ratio: f64,
+}
