@@ -256,6 +256,38 @@ impl Player {
         Ok(())
     }
 
+    /// 静止画表示
+    async fn display_image(&mut self) -> Result<()> {
+        // 画像を読み込み
+        let image = image::open(&self.media_file.path)?;
+        let rendered_frame = self.renderer.render_image(&image)?;
+
+        // ターミナルを開始
+        if let Some(terminal) = self.terminal.take() {
+            let terminal_handle = tokio::spawn(async move {
+                terminal.run().await
+            });
+        }
+
+        // フレームを送信
+        self.frame_tx.send(rendered_frame)?;
+
+        // 制御ループ
+        loop {
+            if self.stop_signal.load(Ordering::Relaxed) {
+                break;
+            }
+
+            while let Ok(command) = self.command_rx.try_recv() {
+                self.handle_command(command).await?;
+            }
+
+            time::sleep(Duration::from_millis(100)).await;
+        }
+
+        Ok(())
+    }
+
     /// コマンドを処理
     async fn handle_command(&mut self, command: PlayerCommand) -> Result<()> {
         match command {
