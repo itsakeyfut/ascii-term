@@ -4,3 +4,4 @@ pub mod processor;
 
 pub use frame::VideoFrame;
 pub use decoder::VideoDecoder;
+pub use processor::VideoProcessor;
