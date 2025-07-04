@@ -70,6 +70,11 @@ impl AudioProcessor {
     pub fn clear_buffer(&mut self) {
         self.buffer.clear();
     }
+
+    /// 音量を設定
+    pub fn set_volume(&mut self, volume: f32) {
+        self.config.volume = volume.clamp(0.0, 2.0);
+    }
 }
 
 /// 簡易理サンプラー
