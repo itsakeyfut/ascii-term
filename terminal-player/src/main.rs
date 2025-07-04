@@ -81,10 +81,11 @@ async fn handle_url_input(url: &str, browser: &str) -> Result<String> {
         if domain.contains("youtube.com") || domain.contains("youtu.be") {
             println!("Downloading YouTube video...");
             let temp_path = unimplemented!();
-            // return Ok(temp_path.to_string_lossy().to_string());
+            return Ok(temp_path.to_string_lossy().to_string());
         }
     }
 
+    // その他のURLの場合は直接ダウンロード
     println!("Downloading media file...");
     let temp_path = download_url(url).await?;
     Ok(temp_path)
