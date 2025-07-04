@@ -385,7 +385,7 @@ mod tests {
         );
         assert!(filename.contains("test.mp4") || filename.contains("download_"));
 
-        let sanitized = FileNamegenerator::sanitize_filename("test<>file.mp4");
+        let sanitized = FileNameGenerator::sanitize_filename("test<>file.mp4");
         assert_eq!(sanitized, "test__file.mp4");
     }
 
