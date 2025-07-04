@@ -80,6 +80,27 @@ impl AudioProcessor {
     pub fn set_muted(&mut self, muted: bool) {
         self.config.muted = muted;
     }
+
+    /// フレームをリサンプリング
+    fn resample_frame(&mut self, frame: AudioFrame) -> Result<AudioFrame> {
+        // リサンプラーを初期化（必要に応じて）
+        if self.resampler.is_none() {
+            self.resampler = Some(SimpleResampler::new(
+                frame.sample_rate,
+                frame.channels,
+                frame.format,
+                self.config.output_sample_rate,
+                self.config.output_channels,
+                self.config.output_format,
+            )?);
+        }
+
+        if let Some(resampler) = &mut self.resampler {
+            resampler.resample(frame)
+        } else {
+            Ok(frame)
+        }
+    }
 }
 
 /// 簡易理リサンプラー
