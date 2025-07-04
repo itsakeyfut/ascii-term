@@ -169,8 +169,8 @@ impl Terminal {
                         self.send_command(PlayerCommand::ToggleGrayscale)?;
                         
                         // 最後のフレームを再描画
-                        if let Some(ref frame) = self.last_frame {
-                            self.display_frame(frame)?;
+                        if let Some(frame) = self.last_frame.take() {
+                            self.display_frame(&frame)?;
                         }
                     }
 

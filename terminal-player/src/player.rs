@@ -247,27 +247,29 @@ impl Player {
     async fn play_audio(&mut self) -> Result<()> {
         if let Some(audio_player) = &mut self.audio_player {
             audio_player.play()?;
+        }
             
-            // ターミナルを開始（音声再生制御用）
-            if let Some(terminal) = self.terminal.take() {
-                let terminal_handle = tokio::spawn(async move {
-                    terminal.run().await
-                });
+        // ターミナルを開始（音声再生制御用）
+        if let Some(terminal) = self.terminal.take() {
+            let _terminal_handle = tokio::spawn(async move {
+                terminal.run().await
+            });
+        }
+
+        // 制御ループ
+        loop {
+            if self.stop_signal.load(Ordering::Relaxed) {
+                break;
             }
 
-            // 制御ループ
-            loop {
-                if self.stop_signal.load(Ordering::Relaxed) {
-                    break;
-                }
-
-                while let Ok(command) = self.command_rx.try_recv() {
-                    self.handle_command(command).await?;
-                }
-
-                time::sleep(Duration::from_millis(100)).await;
+            while let Ok(command) = self.command_rx.try_recv() {
+                self.handle_command(command).await?;
             }
 
+            time::sleep(Duration::from_millis(100)).await;
+        }
+
+        if let Some(audio_player) = &mut self.audio_player {
             audio_player.stop()?;
         }
 
@@ -330,9 +332,9 @@ impl Player {
             PlayerCommand::TogglePlayPause => {
                 let current_state = self.state.load(Ordering::Relaxed);
                 if current_state {
-                    self.handle_command(PlayerCommand::Pause).await?;
+                    Box::pin(self.handle_command(PlayerCommand::Pause)).await?;
                 } else {
-                    self.handle_command(PlayerCommand::Play).await?;
+                    Box::pin(self.handle_command(PlayerCommand::Play)).await?;
                 }
             }
             PlayerCommand::ToggleMute => {
