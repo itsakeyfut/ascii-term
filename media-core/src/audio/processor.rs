@@ -175,4 +175,33 @@ impl SimpleResampler {
 
         Ok(output)
     }
+
+    fn convert_format(&self, samples: &[f32]) -> Result<Vec<u8>> {
+        let mut output = Vec::new();
+
+        match self.output_format {
+            AudioFormat::F32LE => {
+                for &sample in samples {
+                    output.extend_from_slice(&sample.to_le_bytes());
+                }
+            }
+            AudioFormat::S16LE => {
+                for &sample in samples {
+                    let sample_i16 = (sample.clamp(-1.0, 1.0) * 32767.0) as i16;
+                    output.extend_from_slice(&sample_i16.to_le_bytes());
+                }
+            }
+            AudioFormat::S32LE => {
+                for &sample in samples {
+                    let sample_i32 = (sample.clamp(-1.0, 1.0) * 2147483647.0) as i32;
+                    output.extend_from_slice(&sample_i32.to_le_bytes());
+                }
+            }
+            _ => {
+                return Err(MediaError::Audio("Unsupported output format".to_string()));
+            }
+        }
+
+        Ok(output)
+    }
 }
