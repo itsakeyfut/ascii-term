@@ -275,4 +275,11 @@ impl Player {
         }
         Ok(())
     }
+
+    /// 先頭にシーク
+    async fn seek_to_start(&mut self) -> Result<()> {
+        // TODO: 実装は複雑になるため、ひとまず簡略化
+        // 実際にはFFmpegのシーク機能を使用
+        Ok(())
+    }
 }
