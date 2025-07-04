@@ -34,9 +34,8 @@ fn configure_windows() {
     println!("cargo:rustc-link-lib=kernel32");
 
     // Windows での vcpkg 使用を推奨
-    if env::var("VCPKG_ROOT").is_ok() {
-        println!("cargo:rustc-link-search=native={}\\installed\\x64-windows\\lib",
-                env::var("VCPKG_ROOT").unwrap());
+    if let Ok(vcpkg_root) = env::var("VCPKG_ROOT") {
+        println!("cargo:rustc-link-search=native={}\\installed\\x64-windows\\lib", vcpkg_root);
     }
 }
 
