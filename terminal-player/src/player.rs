@@ -58,7 +58,7 @@ pub enum PlayerCommand {
 
 /// プレイヤーの状態
 #[derive(Debug, Clone, PartialEq)]
-pub enum PlayerStatus {
+pub enum PlayerState {
     Playing,
     Paused,
     Stopped,
@@ -70,13 +70,13 @@ pub struct Player {
     config: PlayerConfig,
     state: Arc<AtomicBool>, // true = playing, false = paused
     stop_signal: Arc<AtomicBool>,
-
+    
     // チャンネル
     command_tx: Sender<PlayerCommand>,
     command_rx: Receiver<PlayerCommand>,
     frame_tx: Sender<RenderedFrame>,
     frame_rx: Receiver<RenderedFrame>,
-
+    
     // コンポーネント
     renderer: AsciiRenderer,
     terminal: Option<Terminal>,
@@ -88,25 +88,25 @@ impl Player {
     pub fn new(media_file: MediaFile, config: PlayerConfig) -> Result<Self> {
         let (command_tx, command_rx) = unbounded();
         let (frame_tx, frame_rx) = unbounded();
-
+        
         let render_config = RenderConfig {
             target_width: 80,
             target_height: 24,
             char_map_index: config.char_map_index,
             grayscale: config.grayscale,
             add_newlines: config.add_newlines,
-            width_modifiers: config.width_modifier,
+            width_modifier: config.width_modifier,
         };
-
+        
         let renderer = AsciiRenderer::new(render_config);
-
+        
         // オーディオプレイヤーの初期化
         let audio_player = if config.enable_audio && media_file.info.has_audio {
             Some(AudioPlayer::new(&media_file.path)?)
         } else {
             None
         };
-
+        
         Ok(Self {
             media_file,
             config,
@@ -146,12 +146,12 @@ impl Player {
         let fps = self.config.fps
             .or(self.media_file.info.fps)
             .unwrap_or(30.0);
-
+        
         let frame_duration = Duration::from_secs_f64(1.0 / fps);
-
-        // ビデオコーダーを作成
+        
+        // ビデオデコーダーを作成
         let mut decoder = VideoDecoder::new(&self.media_file)?;
-
+        
         // ターミナルを別スレッドで開始
         if let Some(terminal) = self.terminal.take() {
             let terminal_handle = tokio::spawn(async move {
@@ -167,7 +167,7 @@ impl Player {
         // フレーム送信ループ
         let mut last_frame_time = Instant::now();
         let mut frame_count = 0u64;
-
+        
         loop {
             // 停止シグナルをチェック
             if self.stop_signal.load(Ordering::Relaxed) {
@@ -244,7 +244,7 @@ impl Player {
     async fn play_audio(&mut self) -> Result<()> {
         if let Some(audio_player) = &mut self.audio_player {
             audio_player.play()?;
-
+            
             // ターミナルを開始（音声再生制御用）
             if let Some(terminal) = self.terminal.take() {
                 let terminal_handle = tokio::spawn(async move {
@@ -276,7 +276,7 @@ impl Player {
         // 画像を読み込み
         let image = image::open(&self.media_file.path)?;
         let rendered_frame = self.renderer.render_image(&image)?;
-
+        
         // ターミナルを開始
         if let Some(terminal) = self.terminal.take() {
             let terminal_handle = tokio::spawn(async move {
@@ -306,7 +306,7 @@ impl Player {
     /// コマンドを処理
     async fn handle_command(&mut self, command: PlayerCommand) -> Result<()> {
         match command {
-            PlayerComamnd::Play => {
+            PlayerCommand::Play => {
                 self.state.store(true, Ordering::Relaxed);
                 if let Some(audio_player) = &mut self.audio_player {
                     audio_player.resume()?;
@@ -348,7 +348,7 @@ impl Player {
                 self.renderer.update_resolution(width, height);
             }
             _ => {
-                // その他のコマンドは後で実装する
+                // その他のコマンドは後で実装
             }
         }
         Ok(())
@@ -356,7 +356,7 @@ impl Player {
 
     /// 先頭にシーク
     async fn seek_to_start(&mut self) -> Result<()> {
-        // TODO: 実装は複雑になるため、ひとまず簡略化
+        // 実装は複雑になるため、ここでは簡略化
         // 実際にはFFmpegのシーク機能を使用
         Ok(())
     }
