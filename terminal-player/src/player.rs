@@ -282,4 +282,9 @@ impl Player {
         // 実際にはFFmpegのシーク機能を使用
         Ok(())
     }
+
+    /// コマンド送信用のハンドルを取得
+    pub fn command_sender(&self) -> Sender<PlayerCommand> {
+        self.command_tx.clone()
+    }
 }
