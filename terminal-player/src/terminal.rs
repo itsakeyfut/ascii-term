@@ -65,9 +65,9 @@ impl Terminal {
 
     /// ターミナルを初期化
     fn init_terminal(&self) -> Result<()> {
-        execute!(stdout(), EnterAlternateScreen, SetTitle("Ascii Term"))?;
+        execute!(stdout(), EnterAlternateScreen, SetTitle("ascii-term - Ascii Rendered Media Player"))?;
         terminal::enable_raw_mode()?;
-        self.cleanup_terminal()?;
+        self.clear_screen()?;
         Ok(())
     }
 
@@ -97,7 +97,7 @@ impl Terminal {
     }
 
     /// フレームを表示
-    fn display_frame(&self, frame: &RenderedFrame) -> Result<()> {
+    fn display_frame(&mut self, frame: &RenderedFrame) -> Result<()> {
         if self.grayscale_mode {
             self.display_grayscale_frame(frame)
         } else {
@@ -116,7 +116,7 @@ impl Terminal {
     fn display_colored_frame(&self, frame: &RenderedFrame) -> Result<()> {
         let mut colored_string = String::with_capacity(frame.ascii_text.len() * 20);
         let chars: Vec<char> = frame.ascii_text.chars().collect();
-
+        
         for (i, ch) in chars.iter().enumerate() {
             // RGB色情報を取得
             let rgb_index = i * 3;
@@ -124,7 +124,7 @@ impl Terminal {
                 let r = frame.rgb_data[rgb_index];
                 let g = frame.rgb_data[rgb_index + 1];
                 let b = frame.rgb_data[rgb_index + 2];
-
+                
                 let color = Color::Rgb { r, g, b };
                 colored_string.push_str(&format!("{}", ch.stylize().with(color)));
             } else {
@@ -140,12 +140,12 @@ impl Terminal {
     /// 入力イベントを処理
     fn handle_input_event(&mut self) -> Result<bool> {
         let event = event::read()?;
-
+        
         match event {
             Event::Key(KeyEvent { code, modifiers, .. }) => {
                 match (code, modifiers) {
                     // 終了
-                    (KeyCode::Char('q'), _) |
+                    (KeyCode::Char('q'), _) | 
                     (KeyCode::Char('Q'), _) |
                     (KeyCode::Esc, _) |
                     (KeyCode::Char('c'), KeyModifiers::CONTROL) => {
@@ -158,7 +158,7 @@ impl Terminal {
                         self.send_command(PlayerCommand::TogglePlayPause)?;
                     }
 
-                    // ミュートの切り替え
+                    // ミュート切り替え
                     (KeyCode::Char('m'), _) | (KeyCode::Char('M'), _) => {
                         self.send_command(PlayerCommand::ToggleMute)?;
                     }
@@ -167,14 +167,14 @@ impl Terminal {
                     (KeyCode::Char('g'), _) | (KeyCode::Char('G'), _) => {
                         self.grayscale_mode = !self.grayscale_mode;
                         self.send_command(PlayerCommand::ToggleGrayscale)?;
-
+                        
                         // 最後のフレームを再描画
                         if let Some(ref frame) = self.last_frame {
                             self.display_frame(frame)?;
                         }
                     }
 
-                    // 文字マップ変更 (0-9)
+                    // 文字マップ変更（0-9）
                     (KeyCode::Char(digit), _) if digit.is_ascii_digit() => {
                         let index = digit.to_digit(10).unwrap_or(0) as u8;
                         self.send_command(PlayerCommand::SetCharMap(index))?;
