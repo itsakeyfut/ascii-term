@@ -140,4 +140,39 @@ impl SimpleResampler {
             Ok(samples.to_vec())
         }
     }
+
+    fn convert_sample_rate(&self, samples: &[f32]) -> Result<Vec<f32>> {
+        if self.ratio == 1.0 {
+            return Ok(samples.to_vec());
+        }
+
+        let input_frames = samples.len() / self.output_channels as usize;
+        let output_frames = (input_frames as f64 * self.ratio).round() as usize;
+        let mut output = Vec::with_capacity(output_frames * self.output_channels as usize);
+
+        // 線形補間による簡易リサンプリング
+        for output_frame in 0..output_frames {
+            let input_frame_f = output_frame as f64 / self.ratio;
+            let input_frame = input_frame_f.floor() as usize;
+            let fraction = input_frame_f - input_frame as f64;
+
+            for channel in 0..self.output_channels {
+                let idx1 = input_frame * self.output_channels as usize + channel as usize;
+                let idx2 = ((input_frame + 1).min(input_frames - 1)) * self.output_channels as usize + channel as usize;
+
+                if idx1 < samples.len() && idx2 < samples.len() {
+                    let sample1 = samples[idx1];
+                    let sample2 = samples[idx2];
+                    let interpolated = sample1 + (sample2 - sample1) * fraction as f32;
+                    output.push(interpolated);
+                } else if idx1 < samples.len() {
+                    output.push(samples[idx1]);
+                } else {
+                    output.push(0.0);
+                }
+            }
+        }
+
+        Ok(output)
+    }
 }
