@@ -65,6 +65,11 @@ impl AudioProcessor {
     pub fn buffer_size(&self) -> usize {
         self.buffer.len()
     }
+
+    /// バッファをクリア
+    pub fn clear_buffer(&mut self) {
+        self.buffer.clear();
+    }
 }
 
 /// 簡易理サンプラー
