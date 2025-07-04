@@ -229,8 +229,8 @@ impl Terminal {
         
         // 画面をクリアして前の状態に戻る
         self.clear_screen()?;
-        if let Some(ref frame) = self.last_frame {
-            self.display_frame(frame)?;
+        if let Some(frame) = self.last_frame.take() {
+            self.display_frame(&frame)?;
         }
 
         Ok(())
