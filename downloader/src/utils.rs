@@ -11,7 +11,7 @@ use crate::errors::{DownloaderError, Result};
 pub struct UrlValidator;
 
 impl UrlValidator {
-    /// URLが有効化どうかチェック
+    /// URLが有効かどうかチェック
     pub fn is_valid_url(url: &str) -> bool {
         Url::parse(url).is_ok()
     }
@@ -143,7 +143,7 @@ impl FileDownloader {
         Ok(())
     }
 
-    /// プログレスコードバック付きでダウンロード
+    /// プログレスコールバック付きでダウンロード
     pub async fn download_with_progress<F>(
         url: &str,
         mut progress_callback: F,
