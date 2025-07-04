@@ -101,6 +101,37 @@ impl AudioProcessor {
             Ok(frame)
         }
     }
+
+    /// 音量を適用
+    fn apply_volume(&self, mut frame: AudioFrame) -> Result<AudioFrame> {
+        if self.config.muted {
+            // ミュート：すべてのサンプルを0にする
+            frame.data.fill(0);
+            return Ok(frame);
+        }
+
+        if self.config.volume == 1.0 {
+            return Ok(frame);
+        }
+
+        // 音量調整は浮動小数点で行うのが最も正確
+        let samples = frame.samples_as_f32()?;
+        let adjusted_samples: Vec<f32> = samples
+            .iter()
+            .map(|&sample| sample * self.config.volume)
+            .collect();
+
+        // バイトデータに戻す
+        let mut new_data = Vec::with_capacity(adjusted_samples.len() * 4);
+        for sample in adjusted_samples {
+            new_data.extend_from_slice(&sample.to_le_bytes());
+        }
+
+        frame.data = new_data;
+        frame.format = AudioFormat::F32LE;
+
+        Ok(frame)
+    }
 }
 
 /// 簡易理リサンプラー
