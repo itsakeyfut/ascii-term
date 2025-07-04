@@ -26,7 +26,7 @@ pub enum DownloaderError {
     DependencyMissing(String),
 
     #[error("Unsupported URL: {0}")]
-    Unsupported(String),
+    UnsupportedUrl(String),
 
     #[error("Configuration error: {0}")]
     Config(String),

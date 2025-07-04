@@ -86,7 +86,7 @@ impl FileDownloader {
     pub async fn download_to_temp(url: &str) -> Result<NamedTempFile> {
         // URL検証
         if !UrlValidator::is_http_url(url) {
-            return Err(DownloaderError::Unsupported(format!("Invalid URL: {}", url)));
+            return Err(DownloaderError::UnsupportedUrl(format!("Invalid URL: {}", url)));
         }
 
         // HTTPクライアントを作成
@@ -152,7 +152,7 @@ impl FileDownloader {
         F: FnMut(u64, Option<u64>),
     {
         if !UrlValidator::is_http_url(url) {
-            return Err(DownloaderError::Unsupported(format!("Invalid URL: {}", url)));
+            return Err(DownloaderError::UnsupportedUrl(format!("Invalid URL: {}", url)));
         }
 
         let client = reqwest::Client::builder()
@@ -203,7 +203,7 @@ impl FileDownloader {
     /// ファイルサイズを取得（ダウンロードせずに）
     pub async fn get_file_size(url: &str) -> Result<Option<u64>> {
         if !UrlValidator::is_http_url(url) {
-            return Err(DownloaderError::Unsupported(format!("Invalid URL: {}", url)));
+            return Err(DownloaderError::UnsupportedUrl(format!("Invalid URL: {}", url)));
         }
 
         let client = reqwest::Client::builder()
