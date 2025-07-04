@@ -116,6 +116,41 @@ impl SimpleResampler {
         })
     }
 
+    /// フレームをリサンプル
+    fn resample(&self, frame: AudioFrame) -> Result<AudioFrame> {
+        // 入力フレームを浮動小数点配列に変換
+        let input_samples = frame.samples_as_f32()?;
+
+        // チャンネル数の変換
+        let mono_samples = if self.input_channels != self.output_channels {
+            self.convert_channels(&input_samples, frame.samples)?
+        } else {
+            input_samples
+        };
+
+        // サンプルレート変換
+        let resampled_samples = if self.input_sample_rate != self.output_sample_rate {
+            self.convert_sample_rate(&mono_samples)?
+        } else {
+            mono_samples
+        };
+
+        // 出力形式に変換
+        let output_data = self.convert_format(&resampled_samples)?;
+        let output_samples = resampled_samples.len() / self.output_channels as usize;
+
+        Ok(AudioFrame::new(
+            output_data,
+            output_samples,
+            self.output_channels,
+            self.output_sample_rate,
+            self.output_format,
+            frame.timestamp,
+            frame.pts,
+            false,
+        ))
+    }
+
     fn convert_channels(&self, samples: &[f32], input_samples: usize) -> Result<Vec<f32>> {
         if self.input_channels == 1 && self.output_channels == 2 {
             // モノラル → ステレオ
