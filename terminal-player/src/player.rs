@@ -12,6 +12,7 @@ use crate::renderer::{AsciiRenderer, RenderConfig, RenderedFrame};
 use crate::terminal::Terminal;
 
 /// プレイヤー設定
+#[derive(Debug, Clone)]
 pub struct PlayerConfig {
     pub fps: Option<f64>,
     pub loop_playback: bool,
