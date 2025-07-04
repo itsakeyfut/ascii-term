@@ -7,7 +7,9 @@ use crossbeam_channel::{unbounded, Receiver, Sender};
 use tokio::time;
 
 use media_core::{MediaFile, MediaType, video::VideoDecoder};
+use crate::audio::AudioPlayer;
 use crate::renderer::{AsciiRenderer, RenderConfig, RenderedFrame};
+use crate::terminal::Terminal;
 
 /// プレイヤー設定
 pub struct PlayerConfig {
@@ -76,7 +78,46 @@ pub struct Player {
 
     // コンポーネント
     renderer: AsciiRenderer,
-    // TODO: 追加が必要
-    // terminal
-    // audio_player 
+    terminal: Option<Terminal>,
+    audio_player: Option<AudioPlayer>,
+}
+
+impl Player {
+    /// 新しいプレイヤーを作成
+    pub fn new(media_file: MediaFile, config: PlayerConfig) -> Result<Self> {
+        let (command_tx, command_rx) = unbounded();
+        let (frame_tx, frame_rx) = unbounded();
+
+        let render_config = RenderConfig {
+            target_width: 80,
+            target_height: 24,
+            char_map_index: config.char_map_index,
+            grayscale: config.grayscale,
+            add_newlines: config.add_newlines,
+            width_modifiers: config.width_modifier,
+        };
+
+        let renderer = AsciiRenderer::new(render_config);
+
+        // オーディオプレイヤーの初期化
+        let audio_player = if config.enable_audio && media_file.info.has_audio {
+            Some(AudioPlayer::new(&media_file.path)?)
+        } else {
+            None
+        };
+
+        Ok(Self {
+            media_file,
+            config,
+            state: Arc::new(AtomicBool::new(false)),
+            stop_signal: Arc::new(AtomicBool::new(false)),
+            command_tx,
+            command_rx,
+            frame_tx,
+            frame_rx,
+            renderer,
+            terminal: None,
+            audio_player,
+        })
+    }
 }
