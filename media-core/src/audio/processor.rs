@@ -82,7 +82,7 @@ impl AudioProcessor {
     }
 }
 
-/// 簡易理サンプラー
+/// 簡易理リサンプラー
 struct SimpleResampler {
     input_sample_rate: u32,
     input_channels: u16,
@@ -91,4 +91,28 @@ struct SimpleResampler {
     output_channels: u16,
     output_format: AudioFormat,
     ratio: f64,
+}
+
+impl SimpleResampler {
+    /// 新しいサンプラーを作成
+    fn new(
+        input_sample_rate: u32,
+        input_channels: u16,
+        input_format: AudioFormat,
+        output_sample_rate: u32,
+        output_channels: u16,
+        output_format: AudioFormat,
+    ) -> Result<Self> {
+        let ratio = output_sample_rate as f64 / input_sample_rate as f64;
+
+        Ok(Self {
+            input_sample_rate,
+            input_channels,
+            input_format,
+            output_sample_rate,
+            output_channels,
+            output_format,
+            ratio,
+        })
+    }
 }
