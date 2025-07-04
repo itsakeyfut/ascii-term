@@ -18,8 +18,8 @@ pub async fn download_video(url: &str, browser: &str) -> Result<PathBuf> {
     // yt-dlp コマンドを実行
     let output = Command::new("yt-dlp")
         .arg(url)
-        .arg("--cookies-from-browser")
-        .arg(browser)
+        // .arg("--cookies-from-browser")
+        // .arg(browser)
         .arg("-f")
         .arg("best[ext=mp4]/best")
         .arg("-o")
