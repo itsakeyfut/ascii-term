@@ -55,6 +55,11 @@ impl AudioProcessor {
         // 理サンプラーをリセット（設定が変更された場合）
         self.resampler = None;
     }
+
+    /// 次のフレームを取得
+    pub fn next_frame(&mut self) -> Option<AudioFrame> {
+        self.buffer.pop_front()
+    }
 }
 
 /// 簡易理サンプラー
