@@ -225,6 +225,37 @@ impl Player {
         Ok(())
     }
 
+    /// 音声再生
+    async fn play_audio(&mut self) -> Result<()> {
+        if let Some(audio_player) = &mut self.audio_player {
+            audio_player.play()?;
+
+            // ターミナルを開始（音声再生制御用）
+            if let Some(terminal) = self.terminal.take() {
+                let terminal_handle = tokio::spawn(async move {
+                    terminal.run().await
+                });
+            }
+
+            // 制御ループ
+            loop {
+                if self.stop_signal.load(Ordering::Relaxed) {
+                    break;
+                }
+
+                while let Ok(command) = self.command_rx.try_recv() {
+                    self.handle_command(command).await?;
+                }
+
+                time::sleep(Duration::from_millis(100)).await;
+            }
+
+            audio_player.stop()?;
+        }
+
+        Ok(())
+    }
+
     /// コマンドを処理
     async fn handle_command(&mut self, command: PlayerCommand) -> Result<()> {
         match command {
