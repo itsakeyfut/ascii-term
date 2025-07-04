@@ -224,4 +224,55 @@ impl Player {
 
         Ok(())
     }
+
+    /// コマンドを処理
+    async fn handle_command(&mut self, command: PlayerCommand) -> Result<()> {
+        match command {
+            PlayerComamnd::Play => {
+                self.state.store(true, Ordering::Relaxed);
+                if let Some(audio_player) = &mut self.audio_player {
+                    audio_player.resume()?;
+                }
+            }
+            PlayerCommand::Pause => {
+                self.state.store(false, Ordering::Relaxed);
+                if let Some(audio_player) = &mut self.audio_player {
+                    audio_player.pause()?;
+                }
+            }
+            PlayerCommand::Stop => {
+                self.stop_signal.store(true, Ordering::Relaxed);
+                if let Some(audio_player) = &mut self.audio_player {
+                    audio_player.stop()?;
+                }
+            }
+            PlayerCommand::TogglePlayPause => {
+                let current_state = self.state.load(Ordering::Relaxed);
+                if current_state {
+                    self.handle_command(PlayerCommand::Pause).await?;
+                } else {
+                    self.handle_command(PlayerCommand::Play).await?;
+                }
+            }
+            PlayerCommand::ToggleMute => {
+                if let Some(audio_player) = &mut self.audio_player {
+                    audio_player.toggle_mute()?;
+                }
+            }
+            PlayerCommand::SetCharMap(index) => {
+                self.renderer.set_char_map(index);
+            }
+            PlayerCommand::ToggleGrayscale => {
+                self.config.grayscale = !self.config.grayscale;
+                self.renderer.set_grayscale(self.config.grayscale);
+            }
+            PlayerCommand::Resize(width, height) => {
+                self.renderer.update_resolution(width, height);
+            }
+            _ => {
+                // その他のコマンドは後で実装する
+            }
+        }
+        Ok(())
+    }
 }
