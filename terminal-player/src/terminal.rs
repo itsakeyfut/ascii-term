@@ -177,7 +177,7 @@ impl Terminal {
     /// ヘルプを表示
     fn show_help(&self) -> Result<()> {
         let help_text = r#"
-            tplay - Terminal Media Player
+            ascii-term - Ascii Rendered Media Player
 
             Controls:
             Space       Play/Pause
