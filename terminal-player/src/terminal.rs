@@ -201,7 +201,7 @@ impl Terminal {
     }
 
     /// ヘルプを表示
-    fn show_help(&self) -> Result<()> {
+    fn show_help(&mut self) -> Result<()> {
         let help_text = r#"
             ascii-term - Ascii Rendered Media Player
 
