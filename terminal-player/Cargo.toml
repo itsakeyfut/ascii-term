@@ -5,6 +5,7 @@ edition = "2024"
 
 [dependencies]
 media-core = { path = "../media-core" }
+downloader = { path = "../downloader" }
 
 # ターミナル関連
 crossterm = { workspace = true }
