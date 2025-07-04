@@ -39,6 +39,17 @@ pub struct AudioProcessor {
     resampler: Option<SimpleResampler>,
 }
 
+impl AudioProcessor {
+    /// 新しいオーディオプロセッサーを作成
+    pub fn new(config: AudioProcessorConfig) -> Self {
+        Self {
+            config,
+            buffer: VecDeque::new(),
+            resampler: None,
+        }
+    }
+}
+
 /// 簡易理サンプラー
 struct SimpleResampler {
     input_sample_rate: u32,
