@@ -120,4 +120,103 @@ impl Player {
             audio_player,
         })
     }
+
+    /// 動画再生
+    async fn play_video(&mut self) -> Result<()> {
+        let fps = self.config.fps
+            .or(self.media_file.info.fps)
+            .unwrap_or(30.0);
+
+        let frame_duration = Duration::from_secs_f64(1.0 / fps);
+
+        // ビデオコーダーを作成
+        let mut decoder = VideoDecoder::new(&self.media_file)?;
+
+        // ターミナルを別スレッドで開始
+        if let Some(terminal) = self.terminal.take() {
+            let terminal_handle = tokio::spawn(async move {
+                unimplemented!("terminal.run().await")
+            });
+        }
+
+        // オーディオを開始
+        if let Some(audio_player) = &mut self.audio_player {
+            audio_player.play()?;
+        }
+
+        // フレーム送信ループ
+        let mut last_frame_time = Instant::now();
+        let mut frame_count = 0u64;
+
+        loop {
+            // 停止シグナルをチェック
+            if self.stop_signal.load(Ordering::Relaxed) {
+                break;
+            }
+
+            // コマンドを処理
+            while let Ok(command) = self.command_rx.try_recv() {
+                self.handle_command(command).await?;
+            }
+
+            // 再生中の場合のみフレームを処理
+            if self.state.load(Ordering::Relaxed) {
+                let now = Instant::now();
+                let elapsed = now.duration_since(last_frame_time);
+                
+                if elapsed >= frame_duration {
+                    // フレームスキップの計算
+                    let frames_to_skip = if self.config.allow_frame_skip && elapsed > frame_duration * 2 {
+                        (elapsed.as_secs_f64() / frame_duration.as_secs_f64()) as usize - 1
+                    } else {
+                        0
+                    };
+
+                    // パケットを読み込んでデコード
+                    if let Ok((stream, packet)) = self.media_file.format_context().read_packet() {
+                        if let Some(video_frame) = decoder.decode_next_frame(&packet)? {
+                            // フレームをレンダリング
+                            let rendered_frame = self.renderer.render_video_frame(&video_frame)?;
+                            
+                            // フレームを送信
+                            if self.frame_tx.send(rendered_frame).is_err() {
+                                break; // 受信側が終了
+                            }
+                            
+                            frame_count += 1;
+                            last_frame_time = now;
+                            
+                            // フレームスキップ
+                            for _ in 0..frames_to_skip {
+                                if let Ok((_, packet)) = self.media_file.format_context().read_packet() {
+                                    let _ = decoder.decode_next_frame(&packet);
+                                }
+                            }
+                        }
+                    } else {
+                        // ストリーム終了
+                        if self.config.loop_playback {
+                            // ループ再生
+                            self.seek_to_start().await?;
+                        } else {
+                            break;
+                        }
+                    }
+                } else {
+                    // フレームタイミングまで待機
+                    time::sleep(Duration::from_millis(1)).await;
+                }
+            } else {
+                // 一時停止中
+                time::sleep(Duration::from_millis(16)).await;
+            }
+        }
+
+        // オーディオを停止
+        if let Some(audio_player) = &mut self.audio_player {
+            audio_player.stop()?;
+        }
+
+        Ok(())
+    }
 }
