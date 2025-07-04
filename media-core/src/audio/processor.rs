@@ -115,4 +115,29 @@ impl SimpleResampler {
             ratio,
         })
     }
+
+    fn convert_channels(&self, samples: &[f32], input_samples: usize) -> Result<Vec<f32>> {
+        if self.input_channels == 1 && self.output_channels == 2 {
+            // モノラル → ステレオ
+            let mut output = Vec::with_capacity(samples.len() * 2);
+            for &sample in samples {
+                output.push(sample); // 左チャンネル
+                output.push(sample); // 右チャンネル
+            }
+            Ok(output)
+        } else if self.input_channels == 2 && self.output_channels == 1 {
+            // ステレオ → モノラル
+            let mut output = Vec::with_capacity(input_samples);
+            for chunk in samples.chunks_exact(2) {
+                let mono_sample = (chunk[0] + chunk[1]) / 2.0;
+                output.push(mono_sample);
+            }
+            Ok(output)
+        } else if self.input_channels == self.output_channels {
+            Ok(samples.to_vec())
+        } else {
+            // その他の変換は簡略化
+            Ok(samples.to_vec())
+        }
+    }
 }
