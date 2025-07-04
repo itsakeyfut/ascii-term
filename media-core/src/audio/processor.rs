@@ -48,6 +48,13 @@ impl AudioProcessor {
             resampler: None,
         }
     }
+
+    /// 設定を更新
+    pub fn update_config(&mut self, config: AudioProcessorConfig) {
+        self.config = config;
+        // 理サンプラーをリセット（設定が変更された場合）
+        self.resampler = None;
+    }
 }
 
 /// 簡易理サンプラー
