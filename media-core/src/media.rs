@@ -60,6 +60,7 @@ impl MediaFile {
         let path_str = path.as_ref().to_str()
             .ok_or_else(|| MediaError::InvalidFormat("Invalid path".to_string()))?;
 
+        // FFmpegでメディアファイルを開く
         let format_context = ffmpeg::format::input(&path_str)
             .map_err(|e| MediaError::Ffmpeg(e))?;
 
@@ -128,13 +129,16 @@ impl MediaFile {
         Ok(info)
     }
 
-
     /// メディアタイプを判定
     fn determine_media_type(info: &MediaInfo) -> MediaType {
-        match (info.has_video, info.has_audio) {
-            (true, _) => MediaType::Video,
-            (false, true) => MediaType::Audio,
-            (false, false) => MediaType::Unknown,
+        if info.has_video && info.has_audio {
+            MediaType::Video
+        } else if info.has_video {
+            MediaType::Video
+        } else if info.has_audio {
+            MediaType::Audio
+        } else {
+            MediaType::Unknown
         }
     }
 
@@ -152,14 +156,22 @@ impl MediaFile {
             .best(ffmpeg::media::Type::Audio)
     }
 
-    /// フォーマットコンテクストへの参照を取得
+    /// フォーマットコンテキストへの参照を取得
     pub fn format_context(&self) -> &ffmpeg::format::context::Input {
         &self.format_context
     }
 
-    /// フォーマットコンテクストの可変参照を取得
+    /// フォーマットコンテキストの可変参照を取得
     pub fn format_context_mut(&mut self) -> &mut ffmpeg::format::context::Input {
         &mut self.format_context
+    }
+
+    /// パケットを読み込む
+    pub fn read_packet(&mut self) -> Result<(ffmpeg::Stream, ffmpeg::Packet)> {
+        match self.format_context.packets().next() {
+            Some((stream, packet)) => Ok((stream, packet)),
+            None => Err(MediaError::Video("End of stream".to_string())),
+        }
     }
 }
 
@@ -167,7 +179,7 @@ impl MediaFile {
 pub fn is_image_file<P: AsRef<Path>>(path: P) -> bool {
     if let Some(ext) = path.as_ref().extension() {
         if let Some(ext_str) = ext.to_str() {
-            matches!(ext_str.to_lowercase().as_str(),
+            matches!(ext_str.to_lowercase().as_str(), 
                 "jpg" | "jpeg" | "png" | "bmp" | "gif" | "webp" | "tiff" | "tif")
         } else {
             false

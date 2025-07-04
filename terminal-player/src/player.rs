@@ -154,7 +154,7 @@ impl Player {
         
         // ターミナルを別スレッドで開始
         if let Some(terminal) = self.terminal.take() {
-            let terminal_handle = tokio::spawn(async move {
+            let _terminal_handle = tokio::spawn(async move {
                 terminal.run().await
             });
         }
@@ -193,33 +193,36 @@ impl Player {
                     };
 
                     // パケットを読み込んでデコード
-                    if let Ok((stream, packet)) = self.media_file.format_context().read_packet() {
-                        if let Some(video_frame) = decoder.decode_next_frame(&packet)? {
-                            // フレームをレンダリング
-                            let rendered_frame = self.renderer.render_video_frame(&video_frame)?;
-                            
-                            // フレームを送信
-                            if self.frame_tx.send(rendered_frame).is_err() {
-                                break; // 受信側が終了
-                            }
-                            
-                            frame_count += 1;
-                            last_frame_time = now;
-                            
-                            // フレームスキップ
-                            for _ in 0..frames_to_skip {
-                                if let Ok((_, packet)) = self.media_file.format_context().read_packet() {
-                                    let _ = decoder.decode_next_frame(&packet);
+                    match self.media_file.read_packet() {
+                        Ok((stream, packet)) => {
+                            if let Some(video_frame) = decoder.decode_next_frame(&packet)? {
+                                // フレームをレンダリング
+                                let rendered_frame = self.renderer.render_video_frame(&video_frame)?;
+                                
+                                // フレームを送信
+                                if self.frame_tx.send(rendered_frame).is_err() {
+                                    break; // 受信側が終了
+                                }
+                                
+                                frame_count += 1;
+                                last_frame_time = now;
+                                
+                                // フレームスキップ
+                                for _ in 0..frames_to_skip {
+                                    if let Ok((_, packet)) = self.media_file.read_packet() {
+                                        let _ = decoder.decode_next_frame(&packet);
+                                    }
                                 }
                             }
                         }
-                    } else {
-                        // ストリーム終了
-                        if self.config.loop_playback {
-                            // ループ再生
-                            self.seek_to_start().await?;
-                        } else {
-                            break;
+                        Err(_) => {
+                            // ストリーム終了
+                            if self.config.loop_playback {
+                                // ループ再生
+                                self.seek_to_start().await?;
+                            } else {
+                                break;
+                            }
                         }
                     }
                 } else {
