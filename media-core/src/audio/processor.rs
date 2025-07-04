@@ -60,6 +60,11 @@ impl AudioProcessor {
     pub fn next_frame(&mut self) -> Option<AudioFrame> {
         self.buffer.pop_front()
     }
+
+    /// バッファ内のフレーム数
+    pub fn buffer_size(&self) -> usize {
+        self.buffer.len()
+    }
 }
 
 /// 簡易理サンプラー
