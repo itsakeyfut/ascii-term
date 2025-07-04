@@ -1,4 +1,5 @@
 use std::collections::VecDeque;
+use std::os::unix::process;
 
 use crate::errors::{MediaError, Result};
 use crate::audio::frame::{AudioFrame, AudioFormat};
@@ -54,6 +55,34 @@ impl AudioProcessor {
         self.config = config;
         // リサンプラーをリセット（設定が変更された場合）
         self.resampler = None;
+    }
+
+    /// フレームを処理してバッファに追加
+    pub fn process_frame(&mut self, frame: AudioFrame) -> Result<()> {
+        let mut processed_frame = frame;
+
+        // リサンプリングが必要かチェック
+        if processed_frame.sample_rate != self.config.output_sample_rate
+            || processed_frame.channels != self.config.output_channels
+            || processed_frame.format != self.config.output_format
+        {
+            processed_frame = self.resample_frame(processed_frame)?;
+        }
+
+        // 音量調整
+        if self.config.volume != 1.0 || self.config.muted {
+            processed_frame = self.apply_volume(processed_frame)?;
+        }
+
+        // バッファに追加
+        self.buffer.push_back(processed_frame);
+
+        // バッファサイズを制限
+        while self.buffer.len() > self.config.buffer_size {
+            self.buffer.pop_front();
+        }
+
+        Ok(())
     }
 
     /// 次のフレームを取得
