@@ -121,6 +121,11 @@ impl Player {
         })
     }
 
+    /// プレイヤーを実行
+    pub async fn run(&mut self) -> Result<()> {
+        unimplemented!()
+    }
+
     /// 動画再生
     async fn play_video(&mut self) -> Result<()> {
         let fps = self.config.fps
@@ -135,7 +140,7 @@ impl Player {
         // ターミナルを別スレッドで開始
         if let Some(terminal) = self.terminal.take() {
             let terminal_handle = tokio::spawn(async move {
-                unimplemented!("terminal.run().await")
+                terminal.run().await
             });
         }
 
