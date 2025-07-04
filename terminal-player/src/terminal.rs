@@ -37,6 +37,32 @@ impl Terminal {
         })
     }
 
+    /// ターミナルの実行を開始
+    pub async fn run(mut self) -> Result<()> {
+        // ターミナルの初期化
+        self.init_terminal()?;
+
+        // メインループ
+        loop {
+            // イベントをポーリング
+            if event::poll(Duration::from_millis(16))? {
+                if self.handle_input_event()? {
+                    break; // 終了
+                }
+            }
+
+            // フレームの受信と描画
+            if let Ok(frame) = self.frame_rx.try_recv() {
+                self.display_frame(&frame)?;
+                self.last_frame = Some(frame);
+            }
+        }
+
+        // クリーンアップ
+        self.cleanup_terminal()?;
+        Ok(())
+    }
+
     /// ターミナルを初期化
     fn init_terminal(&self) -> Result<()> {
         execute!(stdout(), EnterAlternateScreen, SetTitle("Ascii Term"))?;
