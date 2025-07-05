@@ -4,7 +4,31 @@ use std::sync::Arc;
 use std::sync::atomic::{AtomicBool, Ordering};
 
 use anyhow::Result;
-use rodio::{Decoder, OutputStream, Sink};
+use rodio::{OutputStream, Sink, Source};
+use crossbeam_channel::{unbounded, Receiver, Sender};
+
+use media_core::{MediaFile, audio::AudioDecoder};
+
+/// 音声データソース（FFmpegからのデータ用）
+struct AudioSource {
+    receiver: Receiver<Vec<f32>>,
+    sample_rate: u32,
+    channels: u16,
+    current_data: Vec<f32>,
+    position: usize,
+}
+
+impl AudioSource {
+    fn new(receiver: Receiver<Vec<f32>>, sample_rate: u32, channels: u16) -> Self {
+        Self {
+            receiver,
+            sample_rate,
+            channels,
+            current_data: Vec::new(),
+            position: 0,
+        }
+    }
+}
 
 /// オーディオプレイヤー
 pub struct AudioPlayer {
