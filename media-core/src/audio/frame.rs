@@ -215,34 +215,85 @@ impl AudioFrame {
 
     /// サンプルを浮動小数点配列として取得（正規化済み）
     pub fn samples_as_f32(&self) -> Result<Vec<f32>> {
-        let mut samples = Vec::with_capacity(self.samples * self.channels as usize);
+        let total_samples = self.samples * self.channels as usize;
+        let mut samples = Vec::with_capacity(total_samples);
 
-        match self.format {
-            AudioFormat::U8 => {
-                for &byte in &self.data {
-                    samples.push((byte as f32 - 128.0) / 128.0);
+        if self.is_planar {
+            // プレーナー形式の処理
+            let bytes_per_sample = match self.format {
+                AudioFormat::U8 => 1,
+                AudioFormat::S16LE => 2,
+                AudioFormat::S32LE => 4,
+                AudioFormat::F32LE => 4,
+                _ => return Err(MediaError::Audio("Unsupported format for f32 conversion".to_string())),
+            };
+            
+            let plane_size = self.samples * bytes_per_sample;
+            
+            // インターリーブ形式に変換
+            for sample_idx in 0..self.samples {
+                for channel in 0..self.channels {
+                    let plane_offset = channel as usize * plane_size;
+                    let sample_offset = sample_idx * bytes_per_sample;
+                    let start = plane_offset + sample_offset;
+                    
+                    if start + bytes_per_sample <= self.data.len() {
+                        let sample = match self.format {
+                            AudioFormat::U8 => {
+                                let byte = self.data[start];
+                                (byte as f32 - 128.0) / 128.0
+                            }
+                            AudioFormat::S16LE => {
+                                let bytes = &self.data[start..start + 2];
+                                let sample_i16 = i16::from_le_bytes([bytes[0], bytes[1]]);
+                                sample_i16 as f32 / 32768.0
+                            }
+                            AudioFormat::S32LE => {
+                                let bytes = &self.data[start..start + 4];
+                                let sample_i32 = i32::from_le_bytes([bytes[0], bytes[1], bytes[2], bytes[3]]);
+                                sample_i32 as f32 / 2147483648.0
+                            }
+                            AudioFormat::F32LE => {
+                                let bytes = &self.data[start..start + 4];
+                                f32::from_le_bytes([bytes[0], bytes[1], bytes[2], bytes[3]])
+                            }
+                            _ => 0.0,
+                        };
+                        samples.push(sample);
+                    } else {
+                        samples.push(0.0);
+                    }
                 }
             }
-            AudioFormat::S16LE => {
-                for chunk in self.data.chunks_exact(2) {
-                    let sample = i16::from_le_bytes([chunk[0], chunk[1]]);
-                    samples.push(sample as f32 / 32768.0);
+        } else {
+            // インターリーブ形式の処理
+            match self.format {
+                AudioFormat::U8 => {
+                    for &byte in &self.data {
+                        samples.push((byte as f32 - 128.0) / 128.0);
+                    }
                 }
-            }
-            AudioFormat::S32LE => {
-                for chunk in self.data.chunks_exact(4) {
-                    let sample = i32::from_le_bytes([chunk[0], chunk[1], chunk[2], chunk[3]]);
-                    samples.push(sample as f32 / 2147483648.0);
+                AudioFormat::S16LE => {
+                    for chunk in self.data.chunks_exact(2) {
+                        let sample = i16::from_le_bytes([chunk[0], chunk[1]]);
+                        samples.push(sample as f32 / 32768.0);
+                    }
                 }
-            }
-            AudioFormat::F32LE => {
-                for chunk in self.data.chunks_exact(4) {
-                    let sample = f32::from_le_bytes([chunk[0], chunk[1], chunk[2], chunk[3]]);
-                    samples.push(sample);
+                AudioFormat::S32LE => {
+                    for chunk in self.data.chunks_exact(4) {
+                        let sample = i32::from_le_bytes([chunk[0], chunk[1], chunk[2], chunk[3]]);
+                        samples.push(sample as f32 / 2147483648.0);
+                    }
                 }
-            }
-            _ => {
-                return Err(MediaError::Audio("Unsupported format for f32 conversion".to_string()));
+                AudioFormat::F32LE => {
+                    for chunk in self.data.chunks_exact(4) {
+                        let sample = f32::from_le_bytes([chunk[0], chunk[1], chunk[2], chunk[3]]);
+                        samples.push(sample);
+                    }
+                }
+                _ => {
+                    return Err(MediaError::Audio("Unsupported format for f32 conversion".to_string()));
+                }
             }
         }
 
