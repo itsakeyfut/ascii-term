@@ -81,32 +81,32 @@ cargo build --release
 
 ```sh
 # 動画ファイルを再生
-tplay video.mp4
+terminal-player video.mp4
 
 # 音声ファイルを再生
-tplay music.mp3
+terminal-player music.mp3
 
 # 画像を表示
-tplay image.jpg
+terminal-player image.jpg
 
 # YouTube動画を再生
-tplay "https://www.youtube.com/watch?v=VIDEO_ID"
+terminal-player "https://www.youtube.com/watch?v=VIDEO_ID"
 
 # ループ再生
-tplay -l video.mp4
+terminal-player -l video.mp4
 
 # カスタムFPS指定
-tplay --fps 24 video.mp4
+terminal-player --fps 24 video.mp4
 
 # グレースケールモード
-tplay -g video.mp4
+terminal-player -g video.mp4
 ```
 
 ### コマンドライン引数
 
 ```
 USAGE:
-    tplay [OPTIONS] <INPUT>
+    terminal-player [OPTIONS] <INPUT>
 
 ARGS:
     <INPUT>    Input file path or URL
