@@ -5,6 +5,8 @@ members = [
     "downloader"
 ]
 
+resolver = "3"
+
 [workspace.dependencies]
 # FFmpeg関連
 ffmpeg-next = "7.1.0"
