@@ -32,7 +32,6 @@ Cargo.lock
 *.jpg
 *.jpeg
 *.png
-*.gif
 *.bmp
 *.webp
 *.tiff
