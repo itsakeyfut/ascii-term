@@ -53,7 +53,7 @@ fn configure_macos() {
 
 fn configure_linux() {
     // Linux ライブラリパスを追加
-    println!("cargo:rustc-link-search=native=/urs/lib/x86_64-linux-gnu");
+    println!("cargo:rustc-link-search=native=/usr/lib/x86_64-linux-gnu");
     println!("cargo:rustc-link-search=native=/usr/local/lib");
 
     // システムライブラリ
