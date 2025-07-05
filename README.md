@@ -1,5 +1,9 @@
 # ASCII Terminal Media Player
 
+[![Status](https://img.shields.io/badge/status-active--development-brightgreen?style=flat-square)]()
+[![Rust Version](https://img.shields.io/badge/rust-1.87+-blue.svg)](https://www.rust-lang.org/)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+
 ![bad_apple](./gallery/bad_apple.gif)
 
 ![cookie_bomb_rush](./gallery/cookie_bomb_rush.gif)
