@@ -4,6 +4,7 @@ use std::time::{Duration, Instant};
 
 use anyhow::Result;
 use crossbeam_channel::{unbounded, Receiver, Sender};
+use media_core::PipelineBuilder;
 use tokio::time;
 
 use media_core::{MediaFile, MediaType, video::VideoDecoder};
@@ -63,7 +64,6 @@ pub enum PlayerState {
     Paused,
     Stopped,
 }
-
 /// メディアプレーヤー
 pub struct Player {
     media_file: MediaFile,
@@ -141,21 +141,30 @@ impl Player {
         }
     }
 
-    /// 動画再生
+    /// 動画再生 (Pipelineを使用)
     async fn play_video(&mut self) -> Result<()> {
         let fps = self.config.fps
             .or(self.media_file.info.fps)
             .unwrap_or(30.0);
         
         let frame_duration = Duration::from_secs_f64(1.0 / fps);
+
+        let mut pipeline = PipelineBuilder::new()
+            .buffer_size(5)
+            .build();
         
-        // ビデオデコーダーを作成
-        let mut decoder = VideoDecoder::new(&self.media_file)?;
+        // メディアファイルをPipelineに設定
+        pipeline.set_media(self.media_file.clone())?;
+        pipeline.start()?;
+        
+        println!("Video pipeline started. Press 'space' to play/pause, 'q' to quit.");
         
         // ターミナルを別スレッドで開始
         if let Some(terminal) = self.terminal.take() {
             let _terminal_handle = tokio::spawn(async move {
-                terminal.run().await
+                if let Err(e) = terminal.run().await {
+                    eprintln!("Terminal error: {}", e);
+                }
             });
         }
 
@@ -163,6 +172,9 @@ impl Player {
         if let Some(audio_player) = &mut self.audio_player {
             audio_player.play()?;
         }
+
+        // 自動再生を開始
+        self.state.store(true, Ordering::Relaxed);
 
         // フレーム送信ループ
         let mut last_frame_time = Instant::now();
@@ -185,43 +197,38 @@ impl Player {
                 let elapsed = now.duration_since(last_frame_time);
                 
                 if elapsed >= frame_duration {
-                    // フレームスキップの計算
-                    let frames_to_skip = if self.config.allow_frame_skip && elapsed > frame_duration * 2 {
-                        (elapsed.as_secs_f64() / frame_duration.as_secs_f64()) as usize - 1
-                    } else {
-                        0
-                    };
-
-                    // パケットを読み込んでデコード
-                    match self.media_file.read_packet() {
-                        Ok((stream, packet)) => {
-                            if let Some(video_frame) = decoder.decode_next_frame(&packet)? {
-                                // フレームをレンダリング
-                                let rendered_frame = self.renderer.render_video_frame(&video_frame)?;
-                                
-                                // フレームを送信
-                                if self.frame_tx.send(rendered_frame).is_err() {
-                                    break; // 受信側が終了
-                                }
-                                
-                                frame_count += 1;
-                                last_frame_time = now;
-                                
-                                // フレームスキップ
-                                for _ in 0..frames_to_skip {
-                                    if let Ok((_, packet)) = self.media_file.read_packet() {
-                                        let _ = decoder.decode_next_frame(&packet);
-                                    }
-                                }
+                    // *** Pipeline から次のフレームを取得 ***
+                    match pipeline.next_frame()? {
+                        Some(video_frame) => {
+                            // フレームをレンダリング
+                            let rendered_frame = self.renderer.render_video_frame(&video_frame)?;
+                            
+                            // フレームを送信
+                            if self.frame_tx.send(rendered_frame).is_err() {
+                                break; // 受信側が終了
+                            }
+                            
+                            frame_count += 1;
+                            last_frame_time = now;
+                            
+                            // デバッグ情報
+                            if frame_count % 30 == 0 {
+                                println!("Frames processed: {}", frame_count);
                             }
                         }
-                        Err(_) => {
+                        None => {
                             // ストリーム終了
-                            if self.config.loop_playback {
-                                // ループ再生
-                                self.seek_to_start().await?;
-                            } else {
-                                break;
+                            if pipeline.is_finished() {
+                                if self.config.loop_playback {
+                                    // ループ再生 (簡易実装)
+                                    pipeline.stop()?;
+                                    pipeline.set_media(self.media_file.clone())?;
+                                    pipeline.start()?;
+                                    println!("Looping video...");
+                                } else {
+                                    println!("Video finished.");
+                                    break;
+                                }
                             }
                         }
                     }
@@ -235,11 +242,13 @@ impl Player {
             }
         }
 
-        // オーディオを停止
+        // クリーンアップ
+        pipeline.stop()?;
         if let Some(audio_player) = &mut self.audio_player {
             audio_player.stop()?;
         }
 
+        println!("Video playback finished. Total frames: {}", frame_count);
         Ok(())
     }
 
@@ -252,7 +261,9 @@ impl Player {
         // ターミナルを開始（音声再生制御用）
         if let Some(terminal) = self.terminal.take() {
             let _terminal_handle = tokio::spawn(async move {
-                terminal.run().await
+                if let Err(e) = terminal.run().await {
+                    eprintln!("Terminal error: {}", e);
+                }
             });
         }
 
@@ -284,8 +295,10 @@ impl Player {
         
         // ターミナルを開始
         if let Some(terminal) = self.terminal.take() {
-            let terminal_handle = tokio::spawn(async move {
-                terminal.run().await
+            let _terminal_handle = tokio::spawn(async move {
+                if let Err(e) = terminal.run().await {
+                    eprintln!("Terminal error: {}", e);
+                }
             });
         }
 
@@ -316,18 +329,21 @@ impl Player {
                 if let Some(audio_player) = &mut self.audio_player {
                     audio_player.resume()?;
                 }
+                println!("Playing...");
             }
             PlayerCommand::Pause => {
                 self.state.store(false, Ordering::Relaxed);
                 if let Some(audio_player) = &mut self.audio_player {
                     audio_player.pause()?;
                 }
+                println!("Paused.");
             }
             PlayerCommand::Stop => {
                 self.stop_signal.store(true, Ordering::Relaxed);
                 if let Some(audio_player) = &mut self.audio_player {
                     audio_player.stop()?;
                 }
+                println!("Stopped.");
             }
             PlayerCommand::TogglePlayPause => {
                 let current_state = self.state.load(Ordering::Relaxed);
@@ -340,29 +356,27 @@ impl Player {
             PlayerCommand::ToggleMute => {
                 if let Some(audio_player) = &mut self.audio_player {
                     audio_player.toggle_mute()?;
+                    println!("Mute toggled.");
                 }
             }
             PlayerCommand::SetCharMap(index) => {
                 self.renderer.set_char_map(index);
+                println!("Character map changed to: {}", 
+                    crate::char_maps::get_char_map_name(index));
             }
             PlayerCommand::ToggleGrayscale => {
                 self.config.grayscale = !self.config.grayscale;
                 self.renderer.set_grayscale(self.config.grayscale);
+                println!("Grayscale mode: {}", self.config.grayscale);
             }
             PlayerCommand::Resize(width, height) => {
                 self.renderer.update_resolution(width, height);
+                println!("Resolution updated: {}x{}", width, height);
             }
             _ => {
                 // その他のコマンドは後で実装
             }
         }
-        Ok(())
-    }
-
-    /// 先頭にシーク
-    async fn seek_to_start(&mut self) -> Result<()> {
-        // 実装は複雑になるため、ここでは簡略化
-        // 実際にはFFmpegのシーク機能を使用
         Ok(())
     }
 
