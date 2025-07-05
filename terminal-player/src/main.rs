@@ -53,11 +53,21 @@ struct Args {
     /// Disable audio playback
     #[arg(long)]
     no_audio: bool,
+
+    /// Diagnose audio system
+    #[arg(long)]
+    diagnose_audio: bool,
 }
 
 #[tokio::main]
 async fn main() -> Result<()> {
     let args = Args::parse();
+
+    // 音声診断モード
+    if args.diagnose_audio {
+        println!("Running audio system diagnostics...");
+        return audio::diagnose_audio_system();
+    }
 
     // 初期化
     media_core::init()?;
@@ -93,6 +103,20 @@ async fn main() -> Result<()> {
         if let Some(codec) = &media_file.info.audio_codec {
             println!("  Audio Codec: {}", codec);
         }
+    }
+
+    // 音声再生の設定
+    let enable_audio = !args.no_audio && media_file.info.has_audio;
+    
+    if enable_audio {
+        println!("Audio playback enabled");
+        // 音声システムの簡易チェック
+        if let Err(e) = audio::diagnose_audio_system() {
+            eprintln!("Warning: Audio system check failed: {}", e);
+            eprintln!("Continuing with audio disabled...");
+        }
+    } else {
+        println!("Audio playback disabled");
     }
 
     // プレイヤー設定

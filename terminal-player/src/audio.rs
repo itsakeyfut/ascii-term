@@ -17,23 +17,53 @@ pub struct AudioPlayer {
 impl AudioPlayer {
     /// 新しいオーディオプレイヤーを作成
     pub fn new(file_path: &str) -> Result<Self> {
+        println!("Initializing audio player for: {}", file_path);
+
         // オーディオストリームを初期化
         let (_stream, stream_handle) = OutputStream::try_default()
-            .map_err(|e| anyhow::anyhow!("Failed to initialize audio stream: {}", e))?;
+            .map_err(|e| {
+                eprintln!("Failed to initialize audio stream: {}", e);
+                eprintln!("This might be due to:");
+                eprintln!("1. No audio device available");
+                eprintln!("2. Audio system not running (try: pulseaudio --start)");
+                eprintln!("3. WSL environment needs additional setup");
+                anyhow::anyhow!("Failed to initialize audio stream: {}", e)
+            })?;
+
+        println!("Audio stream initialized successfully");
 
         // Sink を作成
         let sink = Sink::try_new(&stream_handle)
-            .map_err(|e| anyhow::anyhow!("Failed to create audio sink: {}", e))?;
+            .map_err(|e| {
+                eprintln!("Failed to create audio sink: {}", e);
+                anyhow::anyhow!("Failed to create audio sink: {}", e)
+            })?;
+
+        println!("Audio sink created successfully");
 
         // ファイルを開いてデコーダーを作成
         let file = File::open(file_path)
-            .map_err(|e| anyhow::anyhow!("Failed to open audio file: {}", e))?;
+            .map_err(|e| {
+                eprintln!("Failed to open audio file '{}': {}", file_path, e);
+                anyhow::anyhow!("Failed to open audio file: {}", e)
+            })?;
+
+        println!("Audio file opened successfully");
+
         let source = Decoder::new(BufReader::new(file))
-            .map_err(|e| anyhow::anyhow!("Failed to decode audio file: {}", e))?;
+            .map_err(|e| {
+                eprintln!("Failed to decode audio file '{}': {}", file_path, e);
+                eprintln!("Supported formats: MP3, WAV, FLAC, OGG, etc.");
+                anyhow::anyhow!("Failed to decode audio file: {}", e)
+            })?;
+
+        println!("Audio decoder created successfully");
 
         // 音源を Sink に追加
         sink.append(source);
         sink.pause(); // 最初は一時停止状態
+
+        println!("Audio player initialized successfully");
 
         Ok(Self {
             _stream,
@@ -76,6 +106,7 @@ impl AudioPlayer {
             self.sink.set_volume(clamped_volume);
         }
 
+        println!("Volume set to: {:.2}", clamped_volume);
         Ok(())
     }
 
@@ -90,6 +121,7 @@ impl AudioPlayer {
 
     /// ミュート
     pub fn mute(&mut self) -> Result<()> {
+        println!("Muting audio");
         self.is_muted.store(true, Ordering::Relaxed);
         self.sink.set_volume(0.0);
         Ok(())
@@ -97,6 +129,7 @@ impl AudioPlayer {
 
     /// ミュート解除
     pub fn unmute(&mut self) -> Result<()> {
+        println!("Unmuting audio");
         self.is_muted.store(false, Ordering::Relaxed);
         self.sink.set_volume(self.original_volume);
         Ok(())
@@ -125,6 +158,8 @@ impl AudioPlayer {
     /// 
     /// 簡易実装のため、見直しが必要
     pub fn seek_to_start(&mut self, file_path: &str) -> Result<()> {
+        println!("Seeking to start of audio file");
+
         // 現在の音源をクリア
         self.sink.stop();
 
@@ -148,6 +183,37 @@ impl AudioPlayer {
     }
 }
 
+/// 音声システムの診断
+pub fn diagnose_audio_system() -> Result<()> {
+    println!("=== Audio System Diagnostics ===");
+    
+    // デフォルトの音声デバイスを試す
+    match OutputStream::try_default() {
+        Ok((_stream, _handle)) => {
+            println!("✓ Default audio device is available");
+        }
+        Err(e) => {
+            println!("✗ Default audio device failed: {}", e);
+            
+            // 可能な解決策を提案
+            println!("\nPossible solutions:");
+            println!("1. Check if audio service is running:");
+            println!("   systemctl --user status pulseaudio");
+            println!("2. Start PulseAudio:");
+            println!("   pulseaudio --start");
+            println!("3. Check audio devices:");
+            println!("   aplay -l");
+            println!("4. Test audio:");
+            println!("   speaker-test -t wav -c 2");
+            
+            return Err(anyhow::anyhow!("Audio system not available"));
+        }
+    }
+    
+    println!("=== End Diagnostics ===");
+    Ok(())
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -169,19 +235,40 @@ mod tests {
     }
 
     #[test]
+    fn test_audio_system_availability() {
+        // 音声システムの可用性をテスト
+        match OutputStream::try_default() {
+            Ok(_) => println!("Audio system is available for testing"),
+            Err(e) => println!("Audio system not available: {}", e),
+        }
+    }
+
+
+
+    #[test]
     fn test_volume_control() {
-        let mut player = create_dummy_player();
+        // 音声システムが利用可能な場合のみテスト
+        if let Ok((_stream, stream_handle)) = OutputStream::try_default() {
+            if let Ok(sink) = Sink::try_new(&stream_handle) {
+                let mut player = AudioPlayer {
+                    _stream,
+                    sink,
+                    is_muted: Arc::new(AtomicBool::new(false)),
+                    original_volume: 1.0,
+                };
 
-        assert!(player.set_volume(0.5).is_ok());
-        assert_eq!(player.volume(), 0.5);
-        
-        assert!(player.mute().is_ok());
-        assert_eq!(player.volume(), 0.0);
-        assert!(player.is_muted());
+                assert!(player.set_volume(0.5).is_ok());
+                assert_eq!(player.volume(), 0.5);
+                
+                assert!(player.mute().is_ok());
+                assert_eq!(player.volume(), 0.0);
+                assert!(player.is_muted());
 
-        assert!(player.unmute().is_ok());
-        assert_eq!(player.volume(), 0.5);
-        assert!(!player.is_muted());
+                assert!(player.unmute().is_ok());
+                assert_eq!(player.volume(), 0.5);
+                assert!(!player.is_muted());
+            }
+        }
     }
 
     #[test]
