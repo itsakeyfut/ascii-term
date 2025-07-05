@@ -1,6 +1,7 @@
 use std::thread;
 use std::sync::Arc;
 use std::sync::atomic::{AtomicBool, Ordering};
+use std::time::Duration;
 
 use anyhow::Result;
 use rodio::{OutputStream, Sink, Source};
@@ -15,6 +16,7 @@ struct AudioSource {
     channels: u16,
     current_data: Vec<f32>,
     position: usize,
+    buffer_underrun_count: usize,
 }
 
 impl AudioSource {
@@ -25,13 +27,14 @@ impl AudioSource {
             channels,
             current_data: Vec::new(),
             position: 0,
+            buffer_underrun_count: 0,
         }
     }
 }
 
 impl Source for AudioSource {
     fn current_frame_len(&self) -> Option<usize> {
-        None
+        Some(4096)
     }
 
     fn channels(&self) -> u16 {
@@ -42,7 +45,7 @@ impl Source for AudioSource {
         self.sample_rate
     }
 
-    fn total_duration(&self) -> Option<std::time::Duration> {
+    fn total_duration(&self) -> Option<Duration> {
         None
     }
 }
@@ -57,9 +60,14 @@ impl Iterator for AudioSource {
                 Ok(data) => {
                     self.current_data = data;
                     self.position = 0;
+                    self.buffer_underrun_count = 0;
                 }
                 Err(_) => {
                     // データが無い場合は無音を返す
+                    self.buffer_underrun_count += 1;
+                    if self.buffer_underrun_count % 1000 == 0 {
+                        println!("Audio buffer underrun: {}", self.buffer_underrun_count);
+                    }
                     return Some(0.0);
                 }
             }
@@ -86,6 +94,7 @@ pub struct AudioPlayer {
     decoder_thread: Option<thread::JoinHandle<()>>,
     stop_signal: Arc<AtomicBool>,
 }
+
 
 impl AudioPlayer {
     /// 新しいオーディオプレイヤーを作成
@@ -122,7 +131,7 @@ impl AudioPlayer {
         }
 
         // 音声デコーダーを作成
-        let mut audio_decoder = AudioDecoder::new(&media_file)
+        let audio_decoder = AudioDecoder::new(&media_file)
             .map_err(|e| {
                 eprintln!("Failed to create audio decoder: {}", e);
                 anyhow::anyhow!("Failed to create audio decoder: {}", e)
@@ -160,7 +169,7 @@ impl AudioPlayer {
             _stream,
             sink,
             is_muted: Arc::new(AtomicBool::new(false)),
-            original_volume: 0.6,
+            original_volume: 1.0,
             audio_sender: Some(audio_sender),
             decoder_thread: Some(decoder_thread),
             stop_signal,
@@ -277,42 +286,94 @@ fn decode_audio_loop(
     stop_signal: Arc<AtomicBool>
 ) {
     println!("Audio decoder thread started");
+    
+    let mut frame_count = 0;
+    let mut error_count = 0;
+    let max_buffer_size = 50; // バッファサイズを制限
 
     while !stop_signal.load(Ordering::Relaxed) {
+        // バッファが満杯の場合は少し待つ
+        if sender.len() > max_buffer_size {
+            thread::sleep(Duration::from_millis(10));
+            continue;
+        }
+
         match media_file.read_packet() {
             Ok((stream, packet)) => {
                 match audio_decoder.decode_next_frame(&packet) {
                     Ok(Some(audio_frame)) => {
+                        frame_count += 1;
+                        
                         // 音声フレームをf32サンプルに変換
                         match audio_frame.samples_as_f32() {
                             Ok(samples) => {
-                                if sender.send(samples).is_err() {
-                                    break; //受信側が終了
+                                // サンプルレートが正しいか確認
+                                if audio_frame.sample_rate != audio_decoder.sample_rate() {
+                                    println!("Warning: Sample rate mismatch: {} != {}", 
+                                             audio_frame.sample_rate, audio_decoder.sample_rate());
                                 }
+                                
+                                // チャンネル数が正しいか確認
+                                if audio_frame.channels != audio_decoder.channels() {
+                                    println!("Warning: Channel count mismatch: {} != {}", 
+                                             audio_frame.channels, audio_decoder.channels());
+                                }
+                                
+                                // デバッグ情報（最初の10フレームのみ）
+                                if frame_count <= 10 {
+                                    println!("Audio frame {}: {} samples, {} channels, {} Hz", 
+                                             frame_count, audio_frame.samples, audio_frame.channels, audio_frame.sample_rate);
+                                }
+                                
+                                if sender.send(samples).is_err() {
+                                    println!("Audio sender channel closed");
+                                    break;
+                                }
+                                
+                                error_count = 0; // エラーカウントをリセット
                             }
                             Err(e) => {
-                                eprintln!("Failed to convert audio samples: {}", e);
+                                error_count += 1;
+                                if error_count <= 10 {
+                                    eprintln!("Failed to convert audio samples: {}", e);
+                                }
+                                if error_count > 100 {
+                                    eprintln!("Too many audio conversion errors, stopping");
+                                    break;
+                                }
                             }
                         }
                     }
                     Ok(None) => {
-                        // フレームが得られなかった
+                        // フレームが得られなかった（まだデータが必要）
                         continue;
                     }
                     Err(e) => {
-                        eprintln!("Audio decode error: {}", e);
+                        error_count += 1;
+                        if error_count <= 10 {
+                            eprintln!("Audio decode error: {}", e);
+                        }
+                        if error_count > 100 {
+                            eprintln!("Too many audio decode errors, stopping");
+                            break;
+                        }
                         continue;
                     }
                 }
             }
-            Err(_) => {
-                // ストリーム終了
+            Err(e) => {
+                println!("End of audio stream: {}", e);
                 break;
             }
         }
+        
+        // CPU負荷を軽減するための短い待機
+        if frame_count % 10 == 0 {
+            thread::sleep(Duration::from_millis(1));
+        }
     }
 
-    println!("Audio decoder thread finished");
+    println!("Audio decoder thread finished (processed {} frames, {} errors)", frame_count, error_count);
 } 
 
 /// 音声システムの診断
