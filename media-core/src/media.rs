@@ -175,6 +175,21 @@ impl MediaFile {
     }
 }
 
+impl Clone for MediaFile {
+    fn clone(&self) -> Self {
+        // 新しいMediaFileを作成（FFmpegコンテキストは共有できないため）
+        Self::open(&self.path).unwrap_or_else(|_| {
+            // フォールバック：基本情報だけを持つダミー
+            Self {
+                path: self.path.clone(),
+                media_type: self.media_type.clone(),
+                info: self.info.clone(),
+                format_context: ffmpeg::format::input(&self.path).unwrap(),
+            }
+        })
+    }
+}
+
 /// 静的画像ファイルを検出
 pub fn is_image_file<P: AsRef<Path>>(path: P) -> bool {
     if let Some(ext) = path.as_ref().extension() {
