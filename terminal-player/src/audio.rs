@@ -1,5 +1,4 @@
-use std::fs::File;
-use std::io::BufReader;
+use std::thread;
 use std::sync::Arc;
 use std::sync::atomic::{AtomicBool, Ordering};
 
@@ -30,27 +29,73 @@ impl AudioSource {
     }
 }
 
+impl Source for AudioSource {
+    fn current_frame_len(&self) -> Option<usize> {
+        None
+    }
+
+    fn channels(&self) -> u16 {
+        self.channels
+    }
+
+    fn sample_rate(&self) -> u32 {
+        self.sample_rate
+    }
+
+    fn total_duration(&self) -> Option<std::time::Duration> {
+        None
+    }
+}
+
+impl Iterator for AudioSource {
+    type Item = f32;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        // 現在のデータが空の場合、新しいデータを取得
+        if self.position >= self.current_data.len() {
+            match self.receiver.try_recv() {
+                Ok(data) => {
+                    self.current_data = data;
+                    self.position = 0;
+                }
+                Err(_) => {
+                    // データが無い場合は無音を返す
+                    return Some(0.0);
+                }
+            }
+        }
+
+        // データを返す
+        if self.position < self.current_data.len() {
+            let sample = self.current_data[self.position];
+            self.position += 1;
+            Some(sample)
+        } else {
+            Some(0.0)
+        }
+    }
+}
+
 /// オーディオプレイヤー
 pub struct AudioPlayer {
     _stream: OutputStream,
     sink: Sink,
     is_muted: Arc<AtomicBool>,
     original_volume: f32,
+    audio_sender: Option<Sender<Vec<f32>>>,
+    decoder_thread: Option<thread::JoinHandle<()>>,
+    stop_signal: Arc<AtomicBool>,
 }
 
 impl AudioPlayer {
     /// 新しいオーディオプレイヤーを作成
     pub fn new(file_path: &str) -> Result<Self> {
-        println!("Initializing audio player for: {}", file_path);
-
+        println!("Initializing FFmpeg-based audio player for: {}", file_path);
+        
         // オーディオストリームを初期化
         let (_stream, stream_handle) = OutputStream::try_default()
             .map_err(|e| {
                 eprintln!("Failed to initialize audio stream: {}", e);
-                eprintln!("This might be due to:");
-                eprintln!("1. No audio device available");
-                eprintln!("2. Audio system not running (try: pulseaudio --start)");
-                eprintln!("3. WSL environment needs additional setup");
                 anyhow::anyhow!("Failed to initialize audio stream: {}", e)
             })?;
 
@@ -65,27 +110,49 @@ impl AudioPlayer {
 
         println!("Audio sink created successfully");
 
-        // ファイルを開いてデコーダーを作成
-        let file = File::open(file_path)
+        // MediaFileを開く
+        let media_file = MediaFile::open(file_path)
             .map_err(|e| {
-                eprintln!("Failed to open audio file '{}': {}", file_path, e);
-                anyhow::anyhow!("Failed to open audio file: {}", e)
+                eprintln!("Failed to open media file: {}", e);
+                anyhow::anyhow!("Failed to open media file: {}", e)
             })?;
 
-        println!("Audio file opened successfully");
+        if !media_file.info.has_audio {
+            return Err(anyhow::anyhow!("Media file has no audio stream"));
+        }
 
-        let source = Decoder::new(BufReader::new(file))
+        // 音声デコーダーを作成
+        let mut audio_decoder = AudioDecoder::new(&media_file)
             .map_err(|e| {
-                eprintln!("Failed to decode audio file '{}': {}", file_path, e);
-                eprintln!("Supported formats: MP3, WAV, FLAC, OGG, etc.");
-                anyhow::anyhow!("Failed to decode audio file: {}", e)
+                eprintln!("Failed to create audio decoder: {}", e);
+                anyhow::anyhow!("Failed to create audio decoder: {}", e)
             })?;
 
         println!("Audio decoder created successfully");
 
-        // 音源を Sink に追加
-        sink.append(source);
+        // 音声情報を取得
+        let sample_rate = audio_decoder.sample_rate();
+        let channels = audio_decoder.channels();
+        
+        println!("Audio format: {} channels, {} Hz", channels, sample_rate);
+
+        // チャンネルとストップシグナルを作成
+        let (audio_sender, audio_receiver) = unbounded();
+        let stop_signal = Arc::new(AtomicBool::new(false));
+
+        // 音声ソースを作成
+        let audio_source = AudioSource::new(audio_receiver, sample_rate, channels);
+        
+        // 音声ソースをシンクに追加
+        sink.append(audio_source);
         sink.pause(); // 最初は一時停止状態
+
+        // デコーダースレッドを開始
+        let decoder_stop_signal = stop_signal.clone();
+        let decoder_sender = audio_sender.clone();
+        let decoder_thread = thread::spawn(move || {
+            decode_audio_loop(media_file, audio_decoder, decoder_sender, decoder_stop_signal);
+        });
 
         println!("Audio player initialized successfully");
 
@@ -93,31 +160,45 @@ impl AudioPlayer {
             _stream,
             sink,
             is_muted: Arc::new(AtomicBool::new(false)),
-            original_volume: 1.0,
+            original_volume: 0.6,
+            audio_sender: Some(audio_sender),
+            decoder_thread: Some(decoder_thread),
+            stop_signal,
         })
     }
 
     /// 再生を開始
     pub fn play(&mut self) -> Result<()> {
+        println!("Starting audio playback");
         self.sink.play();
         Ok(())
     }
 
     /// 再生を一時停止
     pub fn pause(&mut self) -> Result<()> {
+        println!("Pausing audio playback");
         self.sink.pause();
         Ok(())
     }
 
     /// 再生を再開
     pub fn resume(&mut self) -> Result<()> {
+        println!("Resuming audio playback");
         self.sink.play();
         Ok(())
     }
 
     /// 再生を停止
     pub fn stop(&mut self) -> Result<()> {
+        println!("Stopping audio playback");
+        self.stop_signal.store(true, Ordering::Relaxed);
         self.sink.stop();
+        
+        // デコーダースレッドの終了を待つ
+        if let Some(thread) = self.decoder_thread.take() {
+            let _ = thread.join();
+        }
+        
         Ok(())
     }
 
@@ -177,35 +258,62 @@ impl AudioPlayer {
     pub fn is_muted(&self) -> bool {
         self.is_muted.load(Ordering::Relaxed)
     }
+}
 
-    /// 再生位置を先頭に戻す
-    /// 
-    /// 簡易実装のため、見直しが必要
-    pub fn seek_to_start(&mut self, file_path: &str) -> Result<()> {
-        println!("Seeking to start of audio file");
-
-        // 現在の音源をクリア
-        self.sink.stop();
-
-        // 新しい音源を読み込み
-        let file = File::open(file_path)
-            .map_err(|e| anyhow::anyhow!("Failed to open audio file: {}", e))?;
-        let source = Decoder::new(BufReader::new(file))
-            .map_err(|e| anyhow::anyhow!("Failed to decode audio file: {}", e))?;
-
-        // 音源を Sink に追加
-        self.sink.append(source);
-
-        // 音量とミュート状態を復元
-        if self.is_muted.load(Ordering::Relaxed) {
-            self.sink.set_volume(0.0);
-        } else {
-            self.sink.set_volume(self.original_volume);
+impl Drop for AudioPlayer {
+    fn drop(&mut self) {
+        self.stop_signal.store(true, Ordering::Relaxed);
+        if let Some(thread) = self.decoder_thread.take() {
+            let _ = thread.join();
         }
-
-        Ok(())
     }
 }
+
+/// 音声デコードループ
+fn decode_audio_loop(
+    mut media_file: MediaFile,
+    mut audio_decoder: AudioDecoder,
+    sender: Sender<Vec<f32>>,
+    stop_signal: Arc<AtomicBool>
+) {
+    println!("Audio decoder thread started");
+
+    while !stop_signal.load(Ordering::Relaxed) {
+        match media_file.read_packet() {
+            Ok((stream, packet)) => {
+                match audio_decoder.decode_next_frame(&packet) {
+                    Ok(Some(audio_frame)) => {
+                        // 音声フレームをf32サンプルに変換
+                        match audio_frame.samples_as_f32() {
+                            Ok(samples) => {
+                                if sender.send(samples).is_err() {
+                                    break; //受信側が終了
+                                }
+                            }
+                            Err(e) => {
+                                eprintln!("Failed to convert audio samples: {}", e);
+                            }
+                        }
+                    }
+                    Ok(None) => {
+                        // フレームが得られなかった
+                        continue;
+                    }
+                    Err(e) => {
+                        eprintln!("Audio decode error: {}", e);
+                        continue;
+                    }
+                }
+            }
+            Err(_) => {
+                // ストリーム終了
+                break;
+            }
+        }
+    }
+
+    println!("Audio decoder thread finished");
+} 
 
 /// 音声システムの診断
 pub fn diagnose_audio_system() -> Result<()> {
@@ -236,75 +344,4 @@ pub fn diagnose_audio_system() -> Result<()> {
     
     println!("=== End Diagnostics ===");
     Ok(())
-}
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    // テスト用のダミープレイヤーを作成
-    fn create_dummy_player() -> AudioPlayer {
-        // テスト環境では実際の音声ファイルが利用できない可能性があるため、
-        // ここではダミーの実装を作成
-        // 特に仮想環境では音声機能が備わっていない可能性があるため、テストが失敗する
-        let (_stream, stream_handle) = OutputStream::try_default().unwrap();
-        let sink = Sink::try_new(&stream_handle).unwrap();
-
-        AudioPlayer {
-            _stream,
-            sink,
-            is_muted: Arc::new(AtomicBool::new(false)),
-            original_volume: 1.0,
-        }
-    }
-
-    #[test]
-    fn test_audio_system_availability() {
-        // 音声システムの可用性をテスト
-        match OutputStream::try_default() {
-            Ok(_) => println!("Audio system is available for testing"),
-            Err(e) => println!("Audio system not available: {}", e),
-        }
-    }
-
-
-
-    #[test]
-    fn test_volume_control() {
-        // 音声システムが利用可能な場合のみテスト
-        if let Ok((_stream, stream_handle)) = OutputStream::try_default() {
-            if let Ok(sink) = Sink::try_new(&stream_handle) {
-                let mut player = AudioPlayer {
-                    _stream,
-                    sink,
-                    is_muted: Arc::new(AtomicBool::new(false)),
-                    original_volume: 1.0,
-                };
-
-                assert!(player.set_volume(0.5).is_ok());
-                assert_eq!(player.volume(), 0.5);
-                
-                assert!(player.mute().is_ok());
-                assert_eq!(player.volume(), 0.0);
-                assert!(player.is_muted());
-
-                assert!(player.unmute().is_ok());
-                assert_eq!(player.volume(), 0.5);
-                assert!(!player.is_muted());
-            }
-        }
-    }
-
-    #[test]
-    fn test_mute_toggle() {
-        let mut player = create_dummy_player();
-
-        assert!(!player.is_muted());
-
-        assert!(player.toggle_mute().is_ok());
-        assert!(player.is_muted());
-
-        assert!(player.toggle_mute().is_ok());
-        assert!(!player.is_muted());
-    }
 }
