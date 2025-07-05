@@ -285,6 +285,41 @@ vcpkg integrate install
 
 - 音声デバイスが利用できない場合は `--no-audio` フラグを使用
 
+もし音声ありを再生したい場合、セットアップが必要です。
+
+#### 以下手順
+
+検証しながらセットアップしたため、定まった手順が明確になっていません。
+
+環境：Ubuntu
+
+```
+sudo apt install pulseaudio-module-protocol-native
+pulseaudio --start
+
+mkdir -p ~/.pulse
+echo "default-server = tcp:localhost:4713" > ~/.pulse/client.conf
+
+aplay -l
+pulseaudio --check -v
+
+export PULSE_SERVER="tcp:127.0.0.1:4713"
+pactl info
+
+echo $DISPLAY
+echo $XDG_RUNTIME_DIR
+ls -la /mnt/wslg/runtime-dir/pulse/
+export PULSE_SERVER="unix:/mnt/wslg/runtime-dir/pulse/native"
+echo "default-server = unix:/mnt/wslg/runtime-dir/pulse/native" > ~/.pulse/client.conf
+pactl info
+pactl list short sinks
+```
+
+```
+paplay /usr/share/sounds/alsa/Front_Left.wav 2>/dev/null || echo "Test sound not available"
+pactl get-sink-volume RDPSink
+```
+
 2. YouTube download fails
 
 - yt-dlp が最新版であることを確認
