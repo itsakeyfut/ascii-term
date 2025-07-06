@@ -1,6 +1,6 @@
 use std::path::Path;
 
-use image::{DynamicImage, ImageFormat};
+use image::ImageFormat;
 
 use crate::errors::{MediaError, Result};
 

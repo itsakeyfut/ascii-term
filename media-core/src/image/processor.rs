@@ -1,5 +1,5 @@
 use fast_image_resize as fr;
-use image::{DynamicImage, ImageBuffer, Luma, Rgb, Rgba};
+use image::{DynamicImage, ImageBuffer};
 
 use crate::errors::{MediaError, Result};
 

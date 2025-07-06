@@ -1,6 +1,6 @@
 use std::time::Duration;
 
-use image::{DynamicImage, ImageBuffer, RgbImage, RgbaImage};
+use image::{DynamicImage, ImageBuffer};
 use opencv::{core::Mat, prelude::*};
 
 use crate::errors::{MediaError, Result};

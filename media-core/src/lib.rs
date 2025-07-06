@@ -58,7 +58,7 @@ pub fn test_first_frame<P: AsRef<std::path::Path>>(path: P) -> Result<()> {
     let mut decoder = VideoDecoder::new(&media)?;
 
     // 最初のパケットを読み込み
-    let (stream, packet) = media.read_packet()?;
+    let (_stream, packet) = media.read_packet()?;
 
     // フレームをデコード
     if let Some(frame) = decoder.decode_next_frame(&packet)? {

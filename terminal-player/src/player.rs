@@ -386,7 +386,6 @@ impl Player {
 
         // 音声再生の完了を待つ制御ループ
         let playback_start = Instant::now();
-        let mut last_status_report = Instant::now();
 
         loop {
             // 停止シグナルをチェック
@@ -405,13 +404,6 @@ impl Player {
                 if !audio_player.is_playing() {
                     println!("Audio playback completed naturally");
                     break;
-                }
-
-                // 定期的な状態報告
-                if last_status_report.elapsed() > Duration::from_secs(10) {
-                    // let elapsed = playback_start.elapsed().as_secs_f64();
-                    // println!("Audio playback in progress: {:.1}s elapsed", elapsed);
-                    last_status_report = Instant::now();
                 }
             } else {
                 println!("Audio player unavailable");

@@ -48,7 +48,7 @@ impl Pipeline {
     }
 
     /// メディアファイルを設定
-    pub fn set_media(&mut self, mut media_file: MediaFile) -> Result<()> {
+    pub fn set_media(&mut self, media_file: MediaFile) -> Result<()> {
         if media_file.info.has_video {
             self.decoder = Some(VideoDecoder::new(&media_file)?);
         }
@@ -106,7 +106,7 @@ impl Pipeline {
         // 複数のパケットを処理してバッファを満たす
         while self.frame_buffer.len() < self.config.buffer_size && !self.is_eof {
             match media_file.read_packet() {
-                Ok((stream, packet)) => {
+                Ok((_stream, packet)) => {
                     // デコードを試行
                     match decoder.decode_next_frame(&packet) {
                         Ok(Some(frame)) => {

@@ -6,9 +6,8 @@ mod terminal;
 
 use anyhow::Result;
 use clap::Parser;
-use std::path::Path;
 
-use media_core::{MediaFile, MediaType};
+use media_core::MediaFile;
 
 #[derive(Parser, Debug)]
 #[command(name = "ascii_term")]

@@ -4,7 +4,7 @@ use ffmpeg_next as ffmpeg;
 
 use crate::errors::{MediaError, Result};
 use crate::media::MediaFile;
-use crate::video::frame::{FrameFormat, VideoFrame};
+use crate::video::frame::VideoFrame;
 
 /// ビデオデコーダー
 pub struct VideoDecoder {

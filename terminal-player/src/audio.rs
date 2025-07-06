@@ -519,30 +519,6 @@ fn decode_audio_loop(
             continue;
         }
 
-        // // 定期的な進捗報告
-        // let now = std::time::Instant::now();
-        // if now.duration_since(last_report_time) > PROGRESS_REPORT_INTERVAL {
-        //     let elapsed = now.duration_since(start_time);
-        //     let audio_time = total_samples_sent as f64 / (sample_rate as f64 * channels as f64);
-        //     let progress = if expected_duration_secs > 0.0 {
-        //         (audio_time / expected_duration_secs) * 100.0
-        //     } else {
-        //         0.0
-        //     };
-
-        //     println!("Corrected FFmpeg progress: {:.1}s/{:.1}s ({:.1}%), reads: {}, zero_reads: {}",
-        //              audio_time, expected_duration_secs, progress, read_count, consecutive_zero_reads);
-        //     println!("  Buffer size: {}, samples sent: {}", buffer_size, total_samples_sent);
-
-        //     // FFmpegプロセスの状態をチェック
-        //     if ffmpeg_stream.is_finished() {
-        //         println!("FFmpeg process has finished");
-        //         break;
-        //     }
-
-        //     last_report_time = now;
-        // }
-
         // FFmpegからサンプルを読み取り
         match ffmpeg_stream.read_samples(&mut buffer) {
             Ok(samples_read) => {
@@ -597,7 +573,7 @@ fn decode_audio_loop(
         0.0
     };
 
-    println!("=== Corrected FFmpeg Direct Audio Final Statistics ===");
+    println!("=== FFmpeg Direct Audio Final Statistics ===");
     println!("Sample rate: {} Hz, channels: {}", sample_rate, channels);
     println!("Total samples: {}", total_samples_sent);
     println!("Audio duration: {:.1}s", final_audio_time);
@@ -608,14 +584,14 @@ fn decode_audio_loop(
     println!("Consecutive zero reads: {}", consecutive_zero_reads);
 
     if coverage >= 95.0 {
-        println!("SUCCESS: Corrected FFmpeg audio decoded successfully");
+        println!("SUCCESS: FFmpeg audio decoded successfully");
     } else if coverage >= 80.0 {
-        println!("PARTIAL: Corrected FFmpeg audio decoded partially");
+        println!("PARTIAL: FFmpeg audio decoded partially");
     } else {
-        println!("WARNING: Corrected FFmpeg audio coverage is low");
+        println!("WARNING: FFmpeg audio coverage is low");
     }
 
-    println!("=== End Corrected FFmpeg Statistics ===");
+    println!("=== End FFmpeg Statistics ===");
 }
 
 /// 音声システムの診断

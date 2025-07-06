@@ -1,5 +1,4 @@
 use std::collections::VecDeque;
-use std::os::unix::process;
 
 use crate::audio::frame::{AudioFormat, AudioFrame};
 use crate::errors::{MediaError, Result};
