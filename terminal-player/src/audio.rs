@@ -1,13 +1,13 @@
-use std::thread;
+use std::io::{BufReader, Read};
+use std::process::{Command, Stdio};
 use std::sync::Arc;
 use std::sync::atomic::{AtomicBool, Ordering};
+use std::thread;
 use std::time::Duration;
-use std::process::{Command, Stdio};
-use std::io::{Read, BufReader};
 
 use anyhow::Result;
+use crossbeam_channel::{Receiver, RecvTimeoutError, Sender, unbounded};
 use rodio::{OutputStream, Sink, Source};
-use crossbeam_channel::{unbounded, Receiver, Sender, RecvTimeoutError};
 
 use media_core::MediaFile;
 
@@ -23,37 +23,46 @@ struct FFmpegAudioStream {
 impl FFmpegAudioStream {
     fn new(file_path: &str, sample_rate: u32, channels: u16) -> Result<Self> {
         println!("Starting corrected FFmpeg audio stream for: {}", file_path);
-        
+
         // FFmpegコマンドを構築
         let mut cmd = Command::new("ffmpeg");
-        
+
         // 入力設定
         cmd.args([
-            "-i", file_path,
-            "-vn",  // 動画を無効化
-            "-f", "f32le",
-            "-acodec", "pcm_f32le",
-            "-ar", &sample_rate.to_string(),
-            "-ac", &channels.to_string(),
-            "-loglevel", "error",
-            "-"  // stdout に出力
+            "-i",
+            file_path,
+            "-vn", // 動画を無効化
+            "-f",
+            "f32le",
+            "-acodec",
+            "pcm_f32le",
+            "-ar",
+            &sample_rate.to_string(),
+            "-ac",
+            &channels.to_string(),
+            "-loglevel",
+            "error",
+            "-", // stdout に出力
         ]);
-        
+
         cmd.stdout(Stdio::piped());
         cmd.stderr(Stdio::piped());
-        
+
         println!("FFmpeg command: {:?}", cmd);
-        
-        let mut process = cmd.spawn()
+
+        let mut process = cmd
+            .spawn()
             .map_err(|e| anyhow::anyhow!("Failed to start FFmpeg: {}", e))?;
-        
-        let stdout = process.stdout.take()
+
+        let stdout = process
+            .stdout
+            .take()
             .ok_or_else(|| anyhow::anyhow!("Failed to get FFmpeg stdout"))?;
-        
+
         let reader = BufReader::new(stdout);
-        
+
         println!("FFmpeg corrected audio stream started successfully");
-        
+
         Ok(Self {
             process,
             reader,
@@ -62,16 +71,20 @@ impl FFmpegAudioStream {
             bytes_per_sample: 4, // f32 = 4 bytes
         })
     }
-    
+
     fn read_samples(&mut self, buffer: &mut [f32]) -> Result<usize> {
         let byte_buffer_size = buffer.len() * self.bytes_per_sample;
         let mut byte_buffer = vec![0u8; byte_buffer_size];
-        
+
         let mut total_bytes_read = 0;
-        
+
         // 必要なバイト数を読み取るまでループ
         while total_bytes_read < byte_buffer_size {
-            match self.reader.get_mut().read(&mut byte_buffer[total_bytes_read..]) {
+            match self
+                .reader
+                .get_mut()
+                .read(&mut byte_buffer[total_bytes_read..])
+            {
                 Ok(0) => {
                     // EOF
                     break;
@@ -90,28 +103,31 @@ impl FFmpegAudioStream {
                 }
             }
         }
-        
+
         if total_bytes_read == 0 {
             return Ok(0); // EOF
         }
-        
+
         // バイトからf32に変換
         let samples_read = total_bytes_read / self.bytes_per_sample;
-        
+
         for i in 0..samples_read {
             let byte_offset = i * self.bytes_per_sample;
             if byte_offset + self.bytes_per_sample <= total_bytes_read {
                 let sample_bytes = &byte_buffer[byte_offset..byte_offset + self.bytes_per_sample];
                 let sample = f32::from_le_bytes([
-                    sample_bytes[0], sample_bytes[1], sample_bytes[2], sample_bytes[3]
+                    sample_bytes[0],
+                    sample_bytes[1],
+                    sample_bytes[2],
+                    sample_bytes[3],
                 ]);
                 buffer[i] = if sample.is_finite() { sample } else { 0.0 };
             }
         }
-        
+
         Ok(samples_read)
     }
-    
+
     fn is_finished(&mut self) -> bool {
         match self.process.try_wait() {
             Ok(Some(status)) => {
@@ -148,7 +164,12 @@ struct DirectAudioSource {
 }
 
 impl DirectAudioSource {
-    fn new(receiver: Receiver<Vec<f32>>, sample_rate: u32, channels: u16, is_finished: Arc<AtomicBool>) -> Self {
+    fn new(
+        receiver: Receiver<Vec<f32>>,
+        sample_rate: u32,
+        channels: u16,
+        is_finished: Arc<AtomicBool>,
+    ) -> Self {
         Self {
             receiver,
             sample_rate,
@@ -203,8 +224,11 @@ impl Iterator for DirectAudioSource {
                                     break;
                                 }
                                 Err(_) => {
-                                    println!("DirectAudioSource: Stream ended, played {:.1}s", 
-                                            self.total_samples_played as f64 / (self.sample_rate as f64 * self.channels as f64));
+                                    println!(
+                                        "DirectAudioSource: Stream ended, played {:.1}s",
+                                        self.total_samples_played as f64
+                                            / (self.sample_rate as f64 * self.channels as f64)
+                                    );
                                     return None;
                                 }
                             }
@@ -213,15 +237,22 @@ impl Iterator for DirectAudioSource {
                         // タイムアウト時は無音を返す
                         self.buffer_underrun_count += 1;
                         if self.buffer_underrun_count % 200 == 0 {
-                            let played_seconds = self.total_samples_played as f64 / (self.sample_rate as f64 * self.channels as f64);
-                            println!("Audio underrun at {:.1}s, waiting for more data...", played_seconds);
+                            let played_seconds = self.total_samples_played as f64
+                                / (self.sample_rate as f64 * self.channels as f64);
+                            println!(
+                                "Audio underrun at {:.1}s, waiting for more data...",
+                                played_seconds
+                            );
                         }
                         return Some(0.0);
                     }
                 }
                 Err(RecvTimeoutError::Disconnected) => {
-                    println!("DirectAudioSource: Disconnected after {:.1}s", 
-                            self.total_samples_played as f64 / (self.sample_rate as f64 * self.channels as f64));
+                    println!(
+                        "DirectAudioSource: Disconnected after {:.1}s",
+                        self.total_samples_played as f64
+                            / (self.sample_rate as f64 * self.channels as f64)
+                    );
                     return None;
                 }
             }
@@ -256,20 +287,25 @@ pub struct AudioPlayer {
 impl AudioPlayer {
     /// 新しいオーディオプレイヤーを作成
     pub fn new(file_path: &str) -> Result<Self> {
-        println!("Initializing corrected FFmpeg audio player for: {}", file_path);
-        
+        println!(
+            "Initializing corrected FFmpeg audio player for: {}",
+            file_path
+        );
+
         // MediaFileから音声情報を取得
         let media_file = MediaFile::open(file_path)?;
         if !media_file.info.has_audio {
             return Err(anyhow::anyhow!("Media file has no audio stream"));
         }
-        
+
         let sample_rate = media_file.info.sample_rate.unwrap_or(44100);
         let channels = media_file.info.channels.unwrap_or(2) as u16;
-        
-        println!("Media file info: {} Hz, {} channels, duration: {:?}", 
-                 sample_rate, channels, media_file.info.duration);
-        
+
+        println!(
+            "Media file info: {} Hz, {} channels, duration: {:?}",
+            sample_rate, channels, media_file.info.duration
+        );
+
         // オーディオストリームを初期化
         let (_stream, stream_handle) = OutputStream::try_default()
             .map_err(|e| anyhow::anyhow!("Failed to initialize audio stream: {}", e))?;
@@ -284,8 +320,9 @@ impl AudioPlayer {
         let is_finished = Arc::new(AtomicBool::new(false));
 
         // 音声ソースを作成
-        let audio_source = DirectAudioSource::new(audio_receiver, sample_rate, channels, is_finished.clone());
-        
+        let audio_source =
+            DirectAudioSource::new(audio_receiver, sample_rate, channels, is_finished.clone());
+
         // 音声ソースをシンクに追加
         sink.append(audio_source);
         sink.set_volume(1.0);
@@ -297,9 +334,17 @@ impl AudioPlayer {
         let decoder_sender = audio_sender.clone();
         let decoder_is_finished = is_finished.clone();
         let expected_duration = media_file.info.duration;
-        
+
         let decoder_thread = thread::spawn(move || {
-            decode_audio_loop(file_path_clone, sample_rate, channels, decoder_sender, decoder_stop_signal, decoder_is_finished, expected_duration);
+            decode_audio_loop(
+                file_path_clone,
+                sample_rate,
+                channels,
+                decoder_sender,
+                decoder_stop_signal,
+                decoder_is_finished,
+                expected_duration,
+            );
         });
 
         println!("FFmpeg audio player initialized successfully");
@@ -344,12 +389,12 @@ impl AudioPlayer {
         println!("Stopping FFmpeg audio playback");
         self.stop_signal.store(true, Ordering::Relaxed);
         self.sink.stop();
-        
+
         // デコーダースレッドの終了を待つ
         if let Some(thread) = self.decoder_thread.take() {
             let _ = thread.join();
         }
-        
+
         Ok(())
     }
 
@@ -438,10 +483,10 @@ fn decode_audio_loop(
     sender: Sender<Vec<f32>>,
     stop_signal: Arc<AtomicBool>,
     is_finished: Arc<AtomicBool>,
-    expected_duration: Option<Duration>
+    expected_duration: Option<Duration>,
 ) {
     println!("FFmpeg decode loop started");
-    
+
     // FFmpegストリームを開始
     let mut ffmpeg_stream = match FFmpegAudioStream::new(&file_path, sample_rate, channels) {
         Ok(stream) => stream,
@@ -451,21 +496,21 @@ fn decode_audio_loop(
             return;
         }
     };
-    
+
     let mut total_samples_sent = 0;
     let start_time = std::time::Instant::now();
     let mut last_report_time = start_time;
     let mut buffer = vec![0f32; 4096]; // 4096 samples buffer
     let mut read_count = 0;
     let mut consecutive_zero_reads = 0;
-    
+
     let expected_duration_secs = expected_duration.map(|d| d.as_secs_f64()).unwrap_or(0.0);
-    
+
     // const PROGRESS_REPORT_INTERVAL: Duration = Duration::from_secs(5);
     const MAX_CONSECUTIVE_ZERO_READS: u32 = 100;
-    
+
     println!("Expected duration: {:.1}s", expected_duration_secs);
-    
+
     while !stop_signal.load(Ordering::Relaxed) {
         // バッファサイズ管理
         let buffer_size = sender.len();
@@ -473,7 +518,7 @@ fn decode_audio_loop(
             thread::sleep(Duration::from_millis(5));
             continue;
         }
-        
+
         // // 定期的な進捗報告
         // let now = std::time::Instant::now();
         // if now.duration_since(last_report_time) > PROGRESS_REPORT_INTERVAL {
@@ -484,20 +529,20 @@ fn decode_audio_loop(
         //     } else {
         //         0.0
         //     };
-            
-        //     println!("Corrected FFmpeg progress: {:.1}s/{:.1}s ({:.1}%), reads: {}, zero_reads: {}", 
+
+        //     println!("Corrected FFmpeg progress: {:.1}s/{:.1}s ({:.1}%), reads: {}, zero_reads: {}",
         //              audio_time, expected_duration_secs, progress, read_count, consecutive_zero_reads);
         //     println!("  Buffer size: {}, samples sent: {}", buffer_size, total_samples_sent);
-            
+
         //     // FFmpegプロセスの状態をチェック
         //     if ffmpeg_stream.is_finished() {
         //         println!("FFmpeg process has finished");
         //         break;
         //     }
-            
+
         //     last_report_time = now;
         // }
-        
+
         // FFmpegからサンプルを読み取り
         match ffmpeg_stream.read_samples(&mut buffer) {
             Ok(samples_read) => {
@@ -513,9 +558,9 @@ fn decode_audio_loop(
                 } else {
                     consecutive_zero_reads = 0;
                 }
-                
+
                 read_count += 1;
-                
+
                 // 読み取ったサンプルを送信
                 let samples_to_send = buffer[..samples_read].to_vec();
                 if sender.send(samples_to_send).is_ok() {
@@ -524,7 +569,7 @@ fn decode_audio_loop(
                     println!("Corrected FFmpeg sender channel closed");
                     break;
                 }
-                
+
                 // デバッグ情報
                 if read_count <= 3 || read_count % 500 == 0 {
                     println!("FFmpeg read {}: {} samples", read_count, samples_read);
@@ -541,7 +586,7 @@ fn decode_audio_loop(
             }
         }
     }
-    
+
     // 終了処理
     is_finished.store(true, Ordering::Relaxed);
     let final_elapsed = start_time.elapsed();
@@ -551,7 +596,7 @@ fn decode_audio_loop(
     } else {
         0.0
     };
-    
+
     println!("=== Corrected FFmpeg Direct Audio Final Statistics ===");
     println!("Sample rate: {} Hz, channels: {}", sample_rate, channels);
     println!("Total samples: {}", total_samples_sent);
@@ -561,7 +606,7 @@ fn decode_audio_loop(
     println!("Real time: {:.1}s", final_elapsed.as_secs_f64());
     println!("Read operations: {}", read_count);
     println!("Consecutive zero reads: {}", consecutive_zero_reads);
-    
+
     if coverage >= 95.0 {
         println!("SUCCESS: Corrected FFmpeg audio decoded successfully");
     } else if coverage >= 80.0 {
@@ -569,14 +614,14 @@ fn decode_audio_loop(
     } else {
         println!("WARNING: Corrected FFmpeg audio coverage is low");
     }
-    
+
     println!("=== End Corrected FFmpeg Statistics ===");
 }
 
 /// 音声システムの診断
 pub fn diagnose_audio_system() -> Result<()> {
     println!("=== Audio System Diagnostics ===");
-    
+
     // FFmpegの確認
     match Command::new("ffmpeg").arg("-version").output() {
         Ok(output) => {
@@ -595,7 +640,7 @@ pub fn diagnose_audio_system() -> Result<()> {
             return Err(anyhow::anyhow!("FFmpeg not available"));
         }
     }
-    
+
     // オーディオデバイスの確認
     match OutputStream::try_default() {
         Ok((_stream, _handle)) => {
@@ -606,7 +651,7 @@ pub fn diagnose_audio_system() -> Result<()> {
             return Err(anyhow::anyhow!("Audio system not available"));
         }
     }
-    
+
     println!("=== End Diagnostics ===");
     Ok(())
 }

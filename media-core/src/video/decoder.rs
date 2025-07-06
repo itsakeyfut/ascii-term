@@ -4,7 +4,7 @@ use ffmpeg_next as ffmpeg;
 
 use crate::errors::{MediaError, Result};
 use crate::media::MediaFile;
-use crate::video::frame::{VideoFrame, FrameFormat};
+use crate::video::frame::{FrameFormat, VideoFrame};
 
 /// ビデオデコーダー
 pub struct VideoDecoder {
@@ -90,7 +90,8 @@ impl VideoDecoder {
 
     /// PTS を時間に変換
     fn pts_to_duration(&self, pts: i64) -> Duration {
-        let seconds = pts as f64 * self.time_base.numerator() as f64 / self.time_base.denominator() as f64;
+        let seconds =
+            pts as f64 * self.time_base.numerator() as f64 / self.time_base.denominator() as f64;
         Duration::from_secs_f64(seconds)
     }
 

@@ -2,9 +2,9 @@ use std::time::Duration;
 
 use ffmpeg_next as ffmpeg;
 
+use crate::audio::frame::{AudioFormat, AudioFrame};
 use crate::errors::{MediaError, Result};
 use crate::media::MediaFile;
-use crate::audio::frame::{AudioFrame, AudioFormat};
 
 /// オーディオデコーダー
 pub struct AudioDecoder {
@@ -87,7 +87,8 @@ impl AudioDecoder {
 
     /// PTSを時間に変換
     fn pts_to_duration(&self, pts: i64) -> Duration {
-        let seconds = pts as f64 * self.time_base.numerator() as f64 / self.time_base.denominator() as f64;
+        let seconds =
+            pts as f64 * self.time_base.numerator() as f64 / self.time_base.denominator() as f64;
         Duration::from_secs_f64(seconds)
     }
 
@@ -113,7 +114,11 @@ impl AudioDecoder {
     }
 
     /// デコーダーの設定を変更
-    pub fn configure_output(&mut self, sample_rate: Option<u32>, channels: Option<u16>) -> Result<()> {
+    pub fn configure_output(
+        &mut self,
+        sample_rate: Option<u32>,
+        channels: Option<u16>,
+    ) -> Result<()> {
         // FFmpegのリサンプラーを使用して出力形式を変更
         // 実装は複雑になるため、基本的な情報のみ設定
         // 実際のリサンプリングは AudioProcessor で行う
@@ -139,9 +144,11 @@ impl AudioStreamInfo {
     pub fn from_stream(stream: &ffmpeg::Stream) -> Result<Self> {
         let context = ffmpeg::codec::context::Context::from_parameters(stream.parameters())?;
 
-        let decoder = context.decoder().audio()
+        let decoder = context
+            .decoder()
+            .audio()
             .map_err(|_| MediaError::Audio("Failed to get audio decoder".to_string()))?;
-        
+
         let codec_name = format!("{:?}", decoder.codec().map(|c| format!("{:?}", c.id())));
         let sample_rate = decoder.rate();
         let channels = decoder.channels() as u16;
@@ -150,7 +157,8 @@ impl AudioStreamInfo {
 
         let duration = if stream.duration() != ffmpeg_next::ffi::AV_NOPTS_VALUE {
             let time_base = stream.time_base();
-            let seconds = stream.duration() as f64 * time_base.numerator() as f64 / time_base.denominator() as f64;
+            let seconds = stream.duration() as f64 * time_base.numerator() as f64
+                / time_base.denominator() as f64;
             Some(Duration::from_secs_f64(seconds))
         } else {
             None

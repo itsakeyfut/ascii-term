@@ -46,7 +46,10 @@ impl AudioFormat {
             ffmpeg_next::format::Sample::I32(_) => Ok(AudioFormat::S32LE),
             ffmpeg_next::format::Sample::F32(_) => Ok(AudioFormat::F32LE),
             ffmpeg_next::format::Sample::F64(_) => Ok(AudioFormat::F64LE),
-            _ => Err(MediaError::UnsupportedCodec(format!("Unsupported audio format: {:?}", format))),
+            _ => Err(MediaError::UnsupportedCodec(format!(
+                "Unsupported audio format: {:?}",
+                format
+            ))),
         }
     }
 }
@@ -191,7 +194,8 @@ impl AudioFrame {
         // インターリーブからプレーナーに変換
         for channel in 0..self.channels {
             for sample_idx in 0..self.samples {
-                let interleaved_offset = (sample_idx * self.channels as usize + channel as usize) * bytes_per_sample;
+                let interleaved_offset =
+                    (sample_idx * self.channels as usize + channel as usize) * bytes_per_sample;
                 let start = interleaved_offset;
                 let end = start + bytes_per_sample;
 
@@ -225,18 +229,22 @@ impl AudioFrame {
                 AudioFormat::S16LE => 2,
                 AudioFormat::S32LE => 4,
                 AudioFormat::F32LE => 4,
-                _ => return Err(MediaError::Audio("Unsupported format for f32 conversion".to_string())),
+                _ => {
+                    return Err(MediaError::Audio(
+                        "Unsupported format for f32 conversion".to_string(),
+                    ));
+                }
             };
-            
+
             let plane_size = self.samples * bytes_per_sample;
-            
+
             // インターリーブ形式に変換
             for sample_idx in 0..self.samples {
                 for channel in 0..self.channels {
                     let plane_offset = channel as usize * plane_size;
                     let sample_offset = sample_idx * bytes_per_sample;
                     let start = plane_offset + sample_offset;
-                    
+
                     if start + bytes_per_sample <= self.data.len() {
                         let sample = match self.format {
                             AudioFormat::U8 => {
@@ -250,7 +258,8 @@ impl AudioFrame {
                             }
                             AudioFormat::S32LE => {
                                 let bytes = &self.data[start..start + 4];
-                                let sample_i32 = i32::from_le_bytes([bytes[0], bytes[1], bytes[2], bytes[3]]);
+                                let sample_i32 =
+                                    i32::from_le_bytes([bytes[0], bytes[1], bytes[2], bytes[3]]);
                                 sample_i32 as f32 / 2147483648.0
                             }
                             AudioFormat::F32LE => {
@@ -292,7 +301,9 @@ impl AudioFrame {
                     }
                 }
                 _ => {
-                    return Err(MediaError::Audio("Unsupported format for f32 conversion".to_string()));
+                    return Err(MediaError::Audio(
+                        "Unsupported format for f32 conversion".to_string(),
+                    ));
                 }
             }
         }

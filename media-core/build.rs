@@ -35,7 +35,10 @@ fn configure_windows() {
 
     // Windows での vcpkg 使用を推奨
     if let Ok(vcpkg_root) = env::var("VCPKG_ROOT") {
-        println!("cargo:rustc-link-search=native={}\\installed\\x64-windows\\lib", vcpkg_root);
+        println!(
+            "cargo:rustc-link-search=native={}\\installed\\x64-windows\\lib",
+            vcpkg_root
+        );
     }
 }
 
@@ -69,7 +72,10 @@ fn configure_opencv() {
     }
 
     // pkg-config を使用して OpenCV を検出
-    if pkg_config::probe_library("opencv4").or_else(|_| pkg_config::probe_library("opencv")).is_err() {
+    if pkg_config::probe_library("opencv4")
+        .or_else(|_| pkg_config::probe_library("opencv"))
+        .is_err()
+    {
         println!("cargo:warning=OpenCV not found via pkg-config, using system defaults");
     }
 }
@@ -81,7 +87,13 @@ fn configure_ffmpeg() {
     }
 
     // pkg-config を使用して FFmpeg を検出
-    let ffmpeg_libs = ["libavformat", "libavcodec", "libavutil", "libswscale", "libswresample"];
+    let ffmpeg_libs = [
+        "libavformat",
+        "libavcodec",
+        "libavutil",
+        "libswscale",
+        "libswresample",
+    ];
 
     for lib in &ffmpeg_libs {
         if pkg_config::probe_library(lib).is_err() {

@@ -3,8 +3,8 @@ use std::sync::Arc;
 use std::sync::atomic::{AtomicBool, Ordering};
 
 use crate::errors::{MediaError, Result};
-use crate::video::{VideoDecoder, VideoFrame};
 use crate::media::MediaFile;
+use crate::video::{VideoDecoder, VideoFrame};
 
 /// パイプライン設定
 #[derive(Debug, Clone)]
@@ -93,10 +93,14 @@ impl Pipeline {
 
     /// フレームをデコードしてバッファに追加
     fn decode_and_buffer_frames(&mut self) -> Result<()> {
-        let media_file = self.media_file.as_mut()
+        let media_file = self
+            .media_file
+            .as_mut()
             .ok_or_else(|| MediaError::Pipeline("No media file set".to_string()))?;
-        
-        let decoder = self.decoder.as_mut()
+
+        let decoder = self
+            .decoder
+            .as_mut()
             .ok_or_else(|| MediaError::Pipeline("No decoder available".to_string()))?;
 
         // 複数のパケットを処理してバッファを満たす
@@ -121,7 +125,7 @@ impl Pipeline {
                 Err(MediaError::Video(ref msg)) if msg == "End of stream" => {
                     // ストリーム終了
                     self.is_eof = true;
-                    
+
                     // デコーダーから残りのフレームを取得
                     match decoder.flush() {
                         Ok(remaining_frames) => {
@@ -219,10 +223,8 @@ mod tests {
 
     #[test]
     fn test_pipeline_creation() {
-        let pipeline = PipelineBuilder::new()
-            .buffer_size(5)
-            .build();
-        
+        let pipeline = PipelineBuilder::new().buffer_size(5).build();
+
         assert_eq!(pipeline.config.buffer_size, 5);
         assert_eq!(pipeline.buffer_size(), 0);
         assert!(!pipeline.is_running());
@@ -232,13 +234,13 @@ mod tests {
     #[test]
     fn test_pipeline_state() {
         let mut pipeline = Pipeline::new(PipelineConfig::default());
-        
+
         assert!(!pipeline.is_running());
         assert!(!pipeline.is_finished());
-        
+
         pipeline.start().unwrap();
         assert!(pipeline.is_running());
-        
+
         pipeline.stop().unwrap();
         assert!(!pipeline.is_running());
     }

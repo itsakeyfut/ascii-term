@@ -1,5 +1,5 @@
 //! ASCII文字マップの定義
-//! 
+//!
 //! 様々な密度と特性を持つ文字セットを提供し、
 //! 画像の明度をテキスト文字にマッピングするために使用
 
@@ -7,7 +7,8 @@
 pub const CHARS_BASIC: &str = " .:-=+*#%@";
 
 /// 拡張ASCII文字セット（67文字）
-pub const CHARS_EXTENDED: &str = r#" .'`^",:;Il!i~+_-?][}{1)(|/tfjrxnuvczXYUJCLQ0OZmwqpdbkhao*#MW&8%B@$"#;
+pub const CHARS_EXTENDED: &str =
+    r#" .'`^",:;Il!i~+_-?][}{1)(|/tfjrxnuvczXYUJCLQ0OZmwqpdbkhao*#MW&8%B@$"#;
 
 /// 完全ASCII文字セット（92文字）
 pub const CHARS_FULL: &str = r#" `.-':_,^=;><+!rc*/z?sLTv)J7(|Fi{C}fI31tlu[neoZ5Yxjya]2ESwqkP6h9d4VpOGbUAKXHm8RD#$Bg0MNWQ%&@"#;
@@ -36,7 +37,7 @@ pub const CHARS_EMOJI: &str = " ·•○●";
 /// 利用可能な全ての文字マップ
 pub const CHAR_MAPS: &[&str] = &[
     CHARS_BASIC,
-    CHARS_EXTENDED, 
+    CHARS_EXTENDED,
     CHARS_FULL,
     CHARS_BLOCKS,
     CHARS_BRAILLE,
@@ -51,7 +52,7 @@ pub const CHAR_MAPS: &[&str] = &[
 pub const CHAR_MAP_NAMES: &[&str] = &[
     "Basic ASCII (10 chars)",
     "Extended ASCII (67 chars)",
-    "Full ASCII (92 chars)", 
+    "Full ASCII (92 chars)",
     "Unicode Blocks",
     "Braille Characters",
     "Dot Characters",
@@ -84,7 +85,7 @@ pub fn luminance_to_char(luminance: u8, char_map: &str) -> char {
     if chars.is_empty() {
         return ' ';
     }
-    
+
     let index = (luminance as usize * chars.len()) / 256;
     let index = index.min(chars.len() - 1);
     chars[index]
@@ -106,7 +107,7 @@ mod tests {
         let char_map = CHARS_BASIC;
         assert_eq!(luminance_to_char(0, char_map), ' ');
         assert_eq!(luminance_to_char(255, char_map), '@');
-        
+
         // 中間値のテスト
         let mid_char = luminance_to_char(128, char_map);
         assert!(mid_char != ' ' && mid_char != '@');

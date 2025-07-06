@@ -1,12 +1,12 @@
-mod char_maps;
-mod renderer;
-mod player;
-mod terminal;
 mod audio;
+mod char_maps;
+mod player;
+mod renderer;
+mod terminal;
 
-use std::path::Path;
 use anyhow::Result;
 use clap::Parser;
+use std::path::Path;
 
 use media_core::{MediaFile, MediaType};
 
@@ -81,7 +81,7 @@ async fn main() -> Result<()> {
 
     // メディアファイルを開く
     let media_file = MediaFile::open(&media_path)?;
-    
+
     println!("Media Info:");
     println!("  Type: {:?}", media_file.media_type);
     println!("  Duration: {:?}", media_file.info.duration);
@@ -89,17 +89,21 @@ async fn main() -> Result<()> {
         println!("  FPS: {:.2}", fps);
     }
     if media_file.info.has_video {
-        println!("  Video: {}x{}", 
-                 media_file.info.width.unwrap_or(0), 
-                 media_file.info.height.unwrap_or(0));
+        println!(
+            "  Video: {}x{}",
+            media_file.info.width.unwrap_or(0),
+            media_file.info.height.unwrap_or(0)
+        );
         if let Some(codec) = &media_file.info.video_codec {
             println!("  Video Codec: {}", codec);
         }
     }
     if media_file.info.has_audio {
-        println!("  Audio: {} channels, {} Hz", 
-                 media_file.info.channels.unwrap_or(0),
-                 media_file.info.sample_rate.unwrap_or(0));
+        println!(
+            "  Audio: {} channels, {} Hz",
+            media_file.info.channels.unwrap_or(0),
+            media_file.info.sample_rate.unwrap_or(0)
+        );
         if let Some(codec) = &media_file.info.audio_codec {
             println!("  Audio Codec: {}", codec);
         }
@@ -107,7 +111,7 @@ async fn main() -> Result<()> {
 
     // 音声再生の設定
     let enable_audio = !args.no_audio && media_file.info.has_audio;
-    
+
     if enable_audio {
         println!("Audio playback enabled");
         // 音声システムの簡易チェック
@@ -144,7 +148,7 @@ fn is_url(input: &str) -> bool {
 
 async fn handle_url_input(url: &str, browser: &str) -> Result<String> {
     use url::Url;
-    
+
     let parsed_url = Url::parse(url)?;
 
     if let Some(domain) = parsed_url.domain() {
@@ -164,13 +168,13 @@ async fn handle_url_input(url: &str, browser: &str) -> Result<String> {
 async fn download_url(url: &str) -> Result<String> {
     use std::io::Write;
     use tempfile::NamedTempFile;
-    
+
     let response = reqwest::get(url).await?;
     let content = response.bytes().await?;
-    
+
     let mut temp_file = NamedTempFile::new()?;
     temp_file.write_all(&content)?;
-    
+
     let path = temp_file.into_temp_path();
     Ok(path.to_string_lossy().to_string())
 }

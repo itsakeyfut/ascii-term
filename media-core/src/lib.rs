@@ -1,18 +1,18 @@
-pub mod errors;
-pub mod media;
-pub mod video;
 pub mod audio;
+pub mod errors;
 pub mod image;
+pub mod media;
 pub mod pipeline;
+pub mod video;
 
 pub use errors::{MediaError, Result};
-pub use media::{MediaFile, MediaType, MediaInfo};
+pub use media::{MediaFile, MediaInfo, MediaType};
 pub use pipeline::{Pipeline, PipelineBuilder};
 
 /// ライブラリの初期化
-/// 
+///
 /// 次のライブラリの初期化を行う：
-/// 
+///
 /// * FFmpeg
 /// * OpenCV
 pub fn init() -> Result<()> {
@@ -27,7 +27,7 @@ pub fn init() -> Result<()> {
 /// デバッグ関数：動画の基本情報を表示
 pub fn test_media_info<P: AsRef<std::path::Path>>(path: P) -> Result<()> {
     let media = MediaFile::open(path)?;
-    
+
     println!("Media Info:");
     println!("  Type: {:?}", media.media_type);
     println!("  Duration: {:?}", media.info.duration);
@@ -46,20 +46,20 @@ pub fn test_media_info<P: AsRef<std::path::Path>>(path: P) -> Result<()> {
     if let Some(codec) = &media.info.audio_codec {
         println!("  Audio Codec: {}", codec);
     }
-    
+
     Ok(())
 }
 
 /// 最初のフレームを取得
 pub fn test_first_frame<P: AsRef<std::path::Path>>(path: P) -> Result<()> {
     use crate::video::VideoDecoder;
-    
+
     let mut media = MediaFile::open(path)?;
     let mut decoder = VideoDecoder::new(&media)?;
-    
+
     // 最初のパケットを読み込み
     let (stream, packet) = media.read_packet()?;
-    
+
     // フレームをデコード
     if let Some(frame) = decoder.decode_next_frame(&packet)? {
         println!("First frame decoded successfully!");
@@ -70,6 +70,6 @@ pub fn test_first_frame<P: AsRef<std::path::Path>>(path: P) -> Result<()> {
     } else {
         println!("No frame decoded from first packet");
     }
-    
+
     Ok(())
 }

@@ -57,12 +57,13 @@ pub struct MediaFile {
 impl MediaFile {
     /// ファイルパスからメディアファイルを開く
     pub fn open<P: AsRef<Path>>(path: P) -> Result<Self> {
-        let path_str = path.as_ref().to_str()
+        let path_str = path
+            .as_ref()
+            .to_str()
             .ok_or_else(|| MediaError::InvalidFormat("Invalid path".to_string()))?;
 
         // FFmpegでメディアファイルを開く
-        let format_context = ffmpeg::format::input(&path_str)
-            .map_err(|e| MediaError::Ffmpeg(e))?;
+        let format_context = ffmpeg::format::input(&path_str).map_err(|e| MediaError::Ffmpeg(e))?;
 
         let info = Self::extract_media_info(&format_context)?;
         let media_type = Self::determine_media_type(&info);
@@ -82,7 +83,8 @@ impl MediaFile {
         // 全体の長さ
         if format_context.duration() != ffmpeg::ffi::AV_NOPTS_VALUE {
             info.duration = Some(Duration::from_micros(
-                (format_context.duration() as f64 / ffmpeg::ffi::AV_TIME_BASE as f64 * 1_000_000.0) as u64,
+                (format_context.duration() as f64 / ffmpeg::ffi::AV_TIME_BASE as f64 * 1_000_000.0)
+                    as u64,
             ));
         }
 
@@ -96,7 +98,9 @@ impl MediaFile {
                     // フレームレート計算
                     let avg_frame_rate = stream.avg_frame_rate();
                     if avg_frame_rate.numerator() > 0 && avg_frame_rate.denominator() > 0 {
-                        info.fps = Some(avg_frame_rate.numerator() as f64 / avg_frame_rate.denominator() as f64);
+                        info.fps = Some(
+                            avg_frame_rate.numerator() as f64 / avg_frame_rate.denominator() as f64,
+                        );
                     }
 
                     // ビデオ情報の抽出
@@ -104,7 +108,8 @@ impl MediaFile {
                         if let Ok(video_decoder) = ctx.decoder().video() {
                             info.width = Some(video_decoder.width());
                             info.height = Some(video_decoder.height());
-                            info.video_codec = video_decoder.codec().map(|c| format!("{:?}", c.id()));
+                            info.video_codec =
+                                video_decoder.codec().map(|c| format!("{:?}", c.id()));
                         }
                     }
                 }
@@ -117,7 +122,8 @@ impl MediaFile {
                         if let Ok(audio_decoder) = ctx.decoder().audio() {
                             info.sample_rate = Some(audio_decoder.rate());
                             info.channels = Some(audio_decoder.channels() as u16);
-                            info.audio_codec = audio_decoder.codec().map(|c| format!("{:?}", c.id()));
+                            info.audio_codec =
+                                audio_decoder.codec().map(|c| format!("{:?}", c.id()));
                         }
                     }
                 }
@@ -194,8 +200,10 @@ impl Clone for MediaFile {
 pub fn is_image_file<P: AsRef<Path>>(path: P) -> bool {
     if let Some(ext) = path.as_ref().extension() {
         if let Some(ext_str) = ext.to_str() {
-            matches!(ext_str.to_lowercase().as_str(), 
-                "jpg" | "jpeg" | "png" | "bmp" | "gif" | "webp" | "tiff" | "tif")
+            matches!(
+                ext_str.to_lowercase().as_str(),
+                "jpg" | "jpeg" | "png" | "bmp" | "gif" | "webp" | "tiff" | "tif"
+            )
         } else {
             false
         }

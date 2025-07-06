@@ -1,5 +1,5 @@
-use image::{DynamicImage, ImageBuffer, Rgb, Rgba, Luma};
 use fast_image_resize as fr;
+use image::{DynamicImage, ImageBuffer, Luma, Rgb, Rgba};
 
 use crate::errors::{MediaError, Result};
 
@@ -115,50 +115,53 @@ impl ImageProcessor {
         algorithm: Option<ResizeAlgorithm>,
     ) -> Result<DynamicImage> {
         let alg = algorithm.unwrap_or(self.config.resize_algorithm);
-        
+
         if image.width() == width && image.height() == height {
             return Ok(image.clone());
         }
 
         // RGB画像に変換
         let rgb_image = image.to_rgb8();
-        
+
         let src_image = fr::images::Image::from_vec_u8(
             image.width(),
             image.height(),
             rgb_image.into_raw(),
             fr::PixelType::U8x3,
-        ).map_err(|e| MediaError::Image(
-            image::ImageError::Parameter(
-                image::error::ParameterError::from_kind(
-                    image::error::ParameterErrorKind::Generic(format!("FastImageResize error: {:?}", e))
-                )
-            )
-        ))?;
+        )
+        .map_err(|e| {
+            MediaError::Image(image::ImageError::Parameter(
+                image::error::ParameterError::from_kind(image::error::ParameterErrorKind::Generic(
+                    format!("FastImageResize error: {:?}", e),
+                )),
+            ))
+        })?;
 
         let mut dst_image = fr::images::Image::new(width, height, fr::PixelType::U8x3);
 
-        self.resizer.resize(
-            &src_image,
-            &mut dst_image,
-            &fr::ResizeOptions::new().resize_alg(alg.into()),
-        ).map_err(|e| MediaError::Image(
-            image::ImageError::Parameter(
-                image::error::ParameterError::from_kind(
-                    image::error::ParameterErrorKind::Generic(format!("Resize error: {:?}", e))
-                )
+        self.resizer
+            .resize(
+                &src_image,
+                &mut dst_image,
+                &fr::ResizeOptions::new().resize_alg(alg.into()),
             )
-        ))?;
+            .map_err(|e| {
+                MediaError::Image(image::ImageError::Parameter(
+                    image::error::ParameterError::from_kind(
+                        image::error::ParameterErrorKind::Generic(format!("Resize error: {:?}", e)),
+                    ),
+                ))
+            })?;
 
         let resized_data = dst_image.into_vec();
-        let resized_buffer = ImageBuffer::from_raw(width, height, resized_data)
-            .ok_or_else(|| MediaError::Image(
-                image::ImageError::Parameter(
+        let resized_buffer =
+            ImageBuffer::from_raw(width, height, resized_data).ok_or_else(|| {
+                MediaError::Image(image::ImageError::Parameter(
                     image::error::ParameterError::from_kind(
-                        image::error::ParameterErrorKind::DimensionMismatch
-                    )
-                )
-            ))?;
+                        image::error::ParameterErrorKind::DimensionMismatch,
+                    ),
+                ))
+            })?;
 
         Ok(DynamicImage::ImageRgb8(resized_buffer))
     }
@@ -199,7 +202,11 @@ impl ImageProcessor {
     }
 
     /// 複数のフィルターを順次適用
-    pub fn apply_filters(&self, image: &DynamicImage, filters: &[ImageFilter]) -> Result<DynamicImage> {
+    pub fn apply_filters(
+        &self,
+        image: &DynamicImage,
+        filters: &[ImageFilter],
+    ) -> Result<DynamicImage> {
         let mut result = image.clone();
         for filter in filters {
             result = self.apply_filter(&result, filter)?;
@@ -222,14 +229,14 @@ impl ImageProcessor {
             new_data.push(((b as i16 + adjustment).clamp(0, 255)) as u8);
         }
 
-        let new_image = ImageBuffer::from_raw(image.width(), image.height(), new_data)
-            .ok_or_else(|| MediaError::Image(
-                image::ImageError::Parameter(
+        let new_image =
+            ImageBuffer::from_raw(image.width(), image.height(), new_data).ok_or_else(|| {
+                MediaError::Image(image::ImageError::Parameter(
                     image::error::ParameterError::from_kind(
-                        image::error::ParameterErrorKind::DimensionMismatch
-                    )
-                )
-            ))?;
+                        image::error::ParameterErrorKind::DimensionMismatch,
+                    ),
+                ))
+            })?;
 
         Ok(DynamicImage::ImageRgb8(new_image))
     }
@@ -249,14 +256,14 @@ impl ImageProcessor {
             new_data.push((((b as f32 - 128.0) * factor + 128.0).clamp(0.0, 255.0)) as u8);
         }
 
-        let new_image = ImageBuffer::from_raw(image.width(), image.height(), new_data)
-            .ok_or_else(|| MediaError::Image(
-                image::ImageError::Parameter(
+        let new_image =
+            ImageBuffer::from_raw(image.width(), image.height(), new_data).ok_or_else(|| {
+                MediaError::Image(image::ImageError::Parameter(
                     image::error::ParameterError::from_kind(
-                        image::error::ParameterErrorKind::DimensionMismatch
-                    )
-                )
-            ))?;
+                        image::error::ParameterErrorKind::DimensionMismatch,
+                    ),
+                ))
+            })?;
 
         Ok(DynamicImage::ImageRgb8(new_image))
     }
@@ -280,14 +287,14 @@ impl ImageProcessor {
             new_data.push(new_b);
         }
 
-        let new_image = ImageBuffer::from_raw(image.width(), image.height(), new_data)
-            .ok_or_else(|| MediaError::Image(
-                image::ImageError::Parameter(
+        let new_image =
+            ImageBuffer::from_raw(image.width(), image.height(), new_data).ok_or_else(|| {
+                MediaError::Image(image::ImageError::Parameter(
                     image::error::ParameterError::from_kind(
-                        image::error::ParameterErrorKind::DimensionMismatch
-                    )
-                )
-            ))?;
+                        image::error::ParameterErrorKind::DimensionMismatch,
+                    ),
+                ))
+            })?;
 
         Ok(DynamicImage::ImageRgb8(new_image))
     }
@@ -307,14 +314,14 @@ impl ImageProcessor {
             new_data.push(((b as f32 / 255.0).powf(inv_gamma) * 255.0) as u8);
         }
 
-        let new_image = ImageBuffer::from_raw(image.width(), image.height(), new_data)
-            .ok_or_else(|| MediaError::Image(
-                image::ImageError::Parameter(
+        let new_image =
+            ImageBuffer::from_raw(image.width(), image.height(), new_data).ok_or_else(|| {
+                MediaError::Image(image::ImageError::Parameter(
                     image::error::ParameterError::from_kind(
-                        image::error::ParameterErrorKind::DimensionMismatch
-                    )
-                )
-            ))?;
+                        image::error::ParameterErrorKind::DimensionMismatch,
+                    ),
+                ))
+            })?;
 
         Ok(DynamicImage::ImageRgb8(new_image))
     }
@@ -337,7 +344,6 @@ impl ImageProcessor {
         let rgb_image = image.to_rgb8();
         let mut new_data = Vec::with_capacity(rgb_image.len());
 
-
         for pixel in rgb_image.pixels() {
             let [r, g, b] = pixel.0;
             let r_f = r as f32;
@@ -353,14 +359,14 @@ impl ImageProcessor {
             new_data.push(new_b);
         }
 
-        let new_image = ImageBuffer::from_raw(image.width(), image.height(), new_data)
-            .ok_or_else(|| MediaError::Image(
-                image::ImageError::Parameter(
+        let new_image =
+            ImageBuffer::from_raw(image.width(), image.height(), new_data).ok_or_else(|| {
+                MediaError::Image(image::ImageError::Parameter(
                     image::error::ParameterError::from_kind(
-                        image::error::ParameterErrorKind::DimensionMismatch
-                    )
-                )
-            ))?;
+                        image::error::ParameterErrorKind::DimensionMismatch,
+                    ),
+                ))
+            })?;
 
         Ok(DynamicImage::ImageRgb8(new_image))
     }
@@ -379,8 +385,8 @@ fn rgb_to_hsv(r: u8, g: u8, b: u8) -> (f32, f32, f32) {
     let g = g as f32 / 255.0;
     let b = b as f32 / 255.0;
 
-    let max =r.max(g).max(b);
-    let min =r.min(g).min(b);
+    let max = r.max(g).max(b);
+    let min = r.min(g).min(b);
     let delta = max - min;
 
     let h = if delta == 0.0 {

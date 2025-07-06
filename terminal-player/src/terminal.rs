@@ -1,4 +1,4 @@
-use std::io::{stdout, Write};
+use std::io::{Write, stdout};
 use std::time::Duration;
 
 use anyhow::Result;
@@ -65,7 +65,11 @@ impl Terminal {
 
     /// ターミナルを初期化
     fn init_terminal(&self) -> Result<()> {
-        execute!(stdout(), EnterAlternateScreen, SetTitle("ascii-term - Ascii Rendered Media Player"))?;
+        execute!(
+            stdout(),
+            EnterAlternateScreen,
+            SetTitle("ascii-term - Ascii Rendered Media Player")
+        )?;
         terminal::enable_raw_mode()?;
         self.clear_screen()?;
         Ok(())
@@ -86,12 +90,7 @@ impl Terminal {
 
     /// 画面をクリア
     fn clear_screen(&self) -> Result<()> {
-        execute!(
-            stdout(),
-            Clear(ClearType::All),
-            Hide,
-            MoveTo(0, 0),
-        )?;
+        execute!(stdout(), Clear(ClearType::All), Hide, MoveTo(0, 0),)?;
         stdout().flush()?;
         Ok(())
     }
@@ -116,7 +115,7 @@ impl Terminal {
     fn display_colored_frame(&self, frame: &RenderedFrame) -> Result<()> {
         let mut colored_string = String::with_capacity(frame.ascii_text.len() * 20);
         let chars: Vec<char> = frame.ascii_text.chars().collect();
-        
+
         for (i, ch) in chars.iter().enumerate() {
             // RGB色情報を取得
             let rgb_index = i * 3;
@@ -124,7 +123,7 @@ impl Terminal {
                 let r = frame.rgb_data[rgb_index];
                 let g = frame.rgb_data[rgb_index + 1];
                 let b = frame.rgb_data[rgb_index + 2];
-                
+
                 let color = Color::Rgb { r, g, b };
                 colored_string.push_str(&format!("{}", ch.stylize().with(color)));
             } else {
@@ -140,15 +139,17 @@ impl Terminal {
     /// 入力イベントを処理
     fn handle_input_event(&mut self) -> Result<bool> {
         let event = event::read()?;
-        
+
         match event {
-            Event::Key(KeyEvent { code, modifiers, .. }) => {
+            Event::Key(KeyEvent {
+                code, modifiers, ..
+            }) => {
                 match (code, modifiers) {
                     // 終了
-                    (KeyCode::Char('q'), _) | 
-                    (KeyCode::Char('Q'), _) |
-                    (KeyCode::Esc, _) |
-                    (KeyCode::Char('c'), KeyModifiers::CONTROL) => {
+                    (KeyCode::Char('q'), _)
+                    | (KeyCode::Char('Q'), _)
+                    | (KeyCode::Esc, _)
+                    | (KeyCode::Char('c'), KeyModifiers::CONTROL) => {
                         self.send_command(PlayerCommand::Stop)?;
                         return Ok(true);
                     }
@@ -167,7 +168,7 @@ impl Terminal {
                     (KeyCode::Char('g'), _) | (KeyCode::Char('G'), _) => {
                         self.grayscale_mode = !self.grayscale_mode;
                         self.send_command(PlayerCommand::ToggleGrayscale)?;
-                        
+
                         // 最後のフレームを再描画
                         if let Some(frame) = self.last_frame.take() {
                             self.display_frame(&frame)?;
@@ -226,7 +227,7 @@ impl Terminal {
 
         // キー入力を待つ
         event::read()?;
-        
+
         // 画面をクリアして前の状態に戻る
         self.clear_screen()?;
         if let Some(frame) = self.last_frame.take() {

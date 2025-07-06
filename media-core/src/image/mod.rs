@@ -1,8 +1,8 @@
-pub mod processor;
 pub mod formats;
+pub mod processor;
 
-pub use processor::ImageProcessor;
 pub use formats::*;
+pub use processor::ImageProcessor;
 
 use std::path::Path;
 
@@ -12,8 +12,7 @@ use crate::errors::{MediaError, Result};
 
 /// 画像ファイルを開く
 pub fn open_image<P: AsRef<Path>>(path: P) -> Result<DynamicImage> {
-    let image = image::open(path)
-        .map_err(|e| MediaError::Image(e))?;
+    let image = image::open(path).map_err(|e| MediaError::Image(e))?;
     Ok(image)
 }
 

@@ -1,6 +1,6 @@
 mod errors;
-mod youtube;
 mod utils;
+mod youtube;
 
-pub use youtube::download_video;
 pub use errors::{DownloaderError, Result};
+pub use youtube::download_video;

@@ -1,6 +1,6 @@
 use std::time::Duration;
 
-use image::{ImageBuffer, RgbImage, RgbaImage, DynamicImage};
+use image::{DynamicImage, ImageBuffer, RgbImage, RgbaImage};
 use opencv::{core::Mat, prelude::*};
 
 use crate::errors::{MediaError, Result};
@@ -48,7 +48,11 @@ impl VideoFrame {
     }
 
     /// FFmpeg のフレームから VideoFrame を作成
-    pub fn from_ffmpeg_frame(frame: &ffmpeg_next::frame::Video, timestamp: Duration, pts: i64) -> Result<Self> {
+    pub fn from_ffmpeg_frame(
+        frame: &ffmpeg_next::frame::Video,
+        timestamp: Duration,
+        pts: i64,
+    ) -> Result<Self> {
         let width = frame.width();
         let height = frame.height();
         let format = Self::convert_ffmpeg_format(frame.format())?;
@@ -75,7 +79,12 @@ impl VideoFrame {
             opencv::core::CV_8UC3 => FrameFormat::BGR8,
             opencv::core::CV_8UC4 => FrameFormat::BGRA8,
             opencv::core::CV_8UC1 => FrameFormat::Gray8,
-            _ => return Err(MediaError::Video(format!("Unsupported mat type: {}", mat_type))),
+            _ => {
+                return Err(MediaError::Video(format!(
+                    "Unsupported mat type: {}",
+                    mat_type
+                )));
+            }
         };
 
         // データをコピー
@@ -92,11 +101,14 @@ impl VideoFrame {
                     self.width,
                     self.height,
                     self.data.clone(),
-                ).ok_or_else(|| MediaError::Image(image::ImageError::Parameter(
-                    image::error::ParameterError::from_kind(
-                        image::error::ParameterErrorKind::DimensionMismatch
-                    )
-                )))?;
+                )
+                .ok_or_else(|| {
+                    MediaError::Image(image::ImageError::Parameter(
+                        image::error::ParameterError::from_kind(
+                            image::error::ParameterErrorKind::DimensionMismatch,
+                        ),
+                    ))
+                })?;
                 Ok(DynamicImage::ImageRgb8(img))
             }
             FrameFormat::RGBA8 => {
@@ -104,11 +116,14 @@ impl VideoFrame {
                     self.width,
                     self.height,
                     self.data.clone(),
-                ).ok_or_else(|| MediaError::Image(image::ImageError::Parameter(
-                    image::error::ParameterError::from_kind(
-                        image::error::ParameterErrorKind::DimensionMismatch
-                    )
-                )))?;
+                )
+                .ok_or_else(|| {
+                    MediaError::Image(image::ImageError::Parameter(
+                        image::error::ParameterError::from_kind(
+                            image::error::ParameterErrorKind::DimensionMismatch,
+                        ),
+                    ))
+                })?;
                 Ok(DynamicImage::ImageRgba8(img))
             }
             FrameFormat::BGR8 => {
@@ -121,15 +136,15 @@ impl VideoFrame {
                         rgb_data.push(chunk[0]); // B
                     }
                 }
-                let img = ImageBuffer::<image::Rgb<u8>, _>::from_raw(
-                    self.width,
-                    self.height,
-                    rgb_data,
-                ).ok_or_else(|| MediaError::Image(image::ImageError::Parameter(
-                    image::error::ParameterError::from_kind(
-                        image::error::ParameterErrorKind::DimensionMismatch
-                    )
-                )))?;
+                let img =
+                    ImageBuffer::<image::Rgb<u8>, _>::from_raw(self.width, self.height, rgb_data)
+                        .ok_or_else(|| {
+                        MediaError::Image(image::ImageError::Parameter(
+                            image::error::ParameterError::from_kind(
+                                image::error::ParameterErrorKind::DimensionMismatch,
+                            ),
+                        ))
+                    })?;
                 Ok(DynamicImage::ImageRgb8(img))
             }
             FrameFormat::Gray8 => {
@@ -137,14 +152,19 @@ impl VideoFrame {
                     self.width,
                     self.height,
                     self.data.clone(),
-                ).ok_or_else(|| MediaError::Image(image::ImageError::Parameter(
-                    image::error::ParameterError::from_kind(
-                        image::error::ParameterErrorKind::DimensionMismatch
-                    )
-                )))?;
+                )
+                .ok_or_else(|| {
+                    MediaError::Image(image::ImageError::Parameter(
+                        image::error::ParameterError::from_kind(
+                            image::error::ParameterErrorKind::DimensionMismatch,
+                        ),
+                    ))
+                })?;
                 Ok(DynamicImage::ImageLuma8(img))
             }
-            _ => Err(MediaError::Video("Unsupported format for conversion to DynamicImage".to_string())),
+            _ => Err(MediaError::Video(
+                "Unsupported format for conversion to DynamicImage".to_string(),
+            )),
         }
     }
 
@@ -156,7 +176,11 @@ impl VideoFrame {
             FrameFormat::RGB8 => opencv::core::CV_8UC3,
             FrameFormat::RGBA8 => opencv::core::CV_8UC4,
             FrameFormat::Gray8 => opencv::core::CV_8UC1,
-            _ => return Err(MediaError::Video("Unsupported format for OpenCV Mat".to_string())),
+            _ => {
+                return Err(MediaError::Video(
+                    "Unsupported format for OpenCV Mat".to_string(),
+                ));
+            }
         };
 
         let mut mat = Mat::new_rows_cols_with_default(
@@ -171,12 +195,16 @@ impl VideoFrame {
 
         if self.format == FrameFormat::RGB8 || self.format == FrameFormat::RGBA8 {
             // RGB から BGR に変換
-            let channels = if self.format == FrameFormat::RGB8 { 3 } else { 4 };
+            let channels = if self.format == FrameFormat::RGB8 {
+                3
+            } else {
+                4
+            };
             for i in 0..(self.data.len() / channels) {
                 let base_idx = i * channels;
-                mat_data[base_idx] = self.data[base_idx + 2];     // B
+                mat_data[base_idx] = self.data[base_idx + 2]; // B
                 mat_data[base_idx + 1] = self.data[base_idx + 1]; // G
-                mat_data[base_idx + 2] = self.data[base_idx];     // R
+                mat_data[base_idx + 2] = self.data[base_idx]; // R
                 if channels == 4 {
                     mat_data[base_idx + 3] = self.data[base_idx + 3]; // A
                 }
@@ -191,45 +219,38 @@ impl VideoFrame {
     /// リサイズ
     pub fn resize(&self, new_width: u32, new_height: u32) -> Result<Self> {
         let dynamic_img = self.to_dynamic_image()?;
-        let resized = dynamic_img.resize_exact(
-            new_width,
-            new_height,
-            image::imageops::FilterType::Lanczos3,
-        );
+        let resized =
+            dynamic_img.resize_exact(new_width, new_height, image::imageops::FilterType::Lanczos3);
 
         // リサイズされた画像から VideoFrame を作成
         match resized {
-            DynamicImage::ImageRgb8(img) => {
-                Ok(Self::new(
-                    img.into_raw(),
-                    new_width,
-                    new_height,
-                    FrameFormat::RGB8,
-                    self.timestamp,
-                    self.pts,
-                ))
-            }
-            DynamicImage::ImageRgba8(img) => {
-                Ok(Self::new(
-                    img.into_raw(),
-                    new_width,
-                    new_height,
-                    FrameFormat::RGBA8,
-                    self.timestamp,
-                    self.pts,
-                ))
-            }
-            DynamicImage::ImageLuma8(img) => {
-                Ok(Self::new(
-                    img.into_raw(),
-                    new_width,
-                    new_height,
-                    FrameFormat::Gray8,
-                    self.timestamp,
-                    self.pts,
-                ))
-            }
-            _ => Err(MediaError::Video("Unsupported image format after resize".to_string()))
+            DynamicImage::ImageRgb8(img) => Ok(Self::new(
+                img.into_raw(),
+                new_width,
+                new_height,
+                FrameFormat::RGB8,
+                self.timestamp,
+                self.pts,
+            )),
+            DynamicImage::ImageRgba8(img) => Ok(Self::new(
+                img.into_raw(),
+                new_width,
+                new_height,
+                FrameFormat::RGBA8,
+                self.timestamp,
+                self.pts,
+            )),
+            DynamicImage::ImageLuma8(img) => Ok(Self::new(
+                img.into_raw(),
+                new_width,
+                new_height,
+                FrameFormat::Gray8,
+                self.timestamp,
+                self.pts,
+            )),
+            _ => Err(MediaError::Video(
+                "Unsupported image format after resize".to_string(),
+            )),
         }
     }
 
@@ -242,7 +263,10 @@ impl VideoFrame {
             ffmpeg_next::format::Pixel::BGRA => Ok(FrameFormat::BGRA8),
             ffmpeg_next::format::Pixel::YUV420P => Ok(FrameFormat::YUV420P),
             ffmpeg_next::format::Pixel::GRAY8 => Ok(FrameFormat::Gray8),
-            _ => Err(MediaError::UnsupportedCodec(format!("Unsupported pixel format: {:?}", format))),
+            _ => Err(MediaError::UnsupportedCodec(format!(
+                "Unsupported pixel format: {:?}",
+                format
+            ))),
         }
     }
 }

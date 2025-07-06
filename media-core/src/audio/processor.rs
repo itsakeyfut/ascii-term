@@ -1,8 +1,8 @@
 use std::collections::VecDeque;
 use std::os::unix::process;
 
+use crate::audio::frame::{AudioFormat, AudioFrame};
 use crate::errors::{MediaError, Result};
-use crate::audio::frame::{AudioFrame, AudioFormat};
 
 /// オーディオ処理設定
 pub struct AudioProcessorConfig {
@@ -274,7 +274,9 @@ impl SimpleResampler {
 
             for channel in 0..self.output_channels {
                 let idx1 = input_frame * self.output_channels as usize + channel as usize;
-                let idx2 = ((input_frame + 1).min(input_frames - 1)) * self.output_channels as usize + channel as usize;
+                let idx2 = ((input_frame + 1).min(input_frames - 1))
+                    * self.output_channels as usize
+                    + channel as usize;
 
                 if idx1 < samples.len() && idx2 < samples.len() {
                     let sample1 = samples[idx1];

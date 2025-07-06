@@ -77,14 +77,24 @@ impl SupportedImageFormat {
 
     /// 透明度対応かどうか
     pub fn supports_transparency(self) -> bool {
-        matches!(self, Self::Png | Self::Gif | Self::WebP | Self::Ico | Self::Tiff)
+        matches!(
+            self,
+            Self::Png | Self::Gif | Self::WebP | Self::Ico | Self::Tiff
+        )
     }
 
     /// ロスレス圧縮かどうか
     pub fn is_lossness(self) -> bool {
         matches!(
             self,
-            Self::Png | Self::Gif | Self::Bmp | Self::Ico | Self::Tiff | Self::Tga | Self::Pnm | Self::Farbfeld
+            Self::Png
+                | Self::Gif
+                | Self::Bmp
+                | Self::Ico
+                | Self::Tiff
+                | Self::Tga
+                | Self::Pnm
+                | Self::Farbfeld
         )
     }
 
@@ -162,7 +172,10 @@ impl ColorType {
 
     /// アルファチャンネルがあるかどうか
     pub fn has_alpha(self) -> bool {
-        matches!(self, Self::La8 | Self::La16 | Self::Rgba8 | Self::Rgba16 | Self::Rgba32F)
+        matches!(
+            self,
+            Self::La8 | Self::La16 | Self::Rgba8 | Self::Rgba16 | Self::Rgba32F
+        )
     }
 
     /// 浮動小数点形式かどうか
@@ -193,14 +206,13 @@ impl FormatDetector {
 
         let mut file = File::open(path)?;
         let mut header = [0u8; 16];
-        file.read_exact(&mut header).map_err(|_| {
-            MediaError::InvalidFormat("Cannot read file header".to_string())
-        })?;
+        file.read_exact(&mut header)
+            .map_err(|_| MediaError::InvalidFormat("Cannot read file header".to_string()))?;
 
         let format = match &header[..4] {
-            [0x89, 0x50, 0x47] => Some(SupportedImageFormat::Png),     // PNG
+            [0x89, 0x50, 0x47] => Some(SupportedImageFormat::Png), // PNG
             [0xFF, 0xD8, 0xFF, _] => Some(SupportedImageFormat::Jpeg), // JPEG
-            [0x47, 0x49, 0x46, _] => Some(SupportedImageFormat::Gif),  // GIF
+            [0x47, 0x49, 0x46, _] => Some(SupportedImageFormat::Gif), // GIF
             [0x52, 0x49, 0x46, 0x46] => {
                 // RIFF container (WebP)
                 if &header[8..12] == b"WEBP" {
@@ -209,10 +221,12 @@ impl FormatDetector {
                     None
                 }
             }
-            [0x42, 0x40, _, _] => Some(SupportedImageFormat::Bmp),     // BMP
+            [0x42, 0x40, _, _] => Some(SupportedImageFormat::Bmp), // BMP
             _ => {
                 // TIFF (little endian and big endian)
-                if &header[..4] == [0x49, 0x49, 0x2A, 0x00] || &header[..4] == [0x4D, 0x4D, 0x00, 0x2A] {
+                if &header[..4] == [0x49, 0x49, 0x2A, 0x00]
+                    || &header[..4] == [0x4D, 0x4D, 0x00, 0x2A]
+                {
                     Some(SupportedImageFormat::Tiff)
                 } else {
                     None
@@ -246,7 +260,11 @@ impl FormatDetector {
             bit_depth: color_type.bits_per_channel(),
             has_alpha: color_type.has_alpha(),
             is_animated: format.supports_animation(),
-            frame_count: if format.supports_animation() { Some(1) } else { None }, // 実際のフレーム数は別途解析が必要
+            frame_count: if format.supports_animation() {
+                Some(1)
+            } else {
+                None
+            }, // 実際のフレーム数は別途解析が必要
             file_size,
         })
     }
@@ -278,9 +296,8 @@ impl FormatDetector {
     /// 拡張子のリストを取得
     pub fn supported_extensions() -> Vec<&'static str> {
         vec![
-            "png", "jpg", "jpeg", "gif", "webp", "bmp", "ico",
-            "tiff", "tif", "tga", "dds", "hdr", "exr",
-            "ppm", "pgm", "pbm", "pam", "ff"
+            "png", "jpg", "jpeg", "gif", "webp", "bmp", "ico", "tiff", "tif", "tga", "dds", "hdr",
+            "exr", "ppm", "pgm", "pbm", "pam", "ff",
         ]
     }
 }

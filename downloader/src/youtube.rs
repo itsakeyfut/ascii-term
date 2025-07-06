@@ -11,8 +11,7 @@ pub async fn download_video(url: &str, browser: &str) -> Result<PathBuf> {
     check_ytdlp_installed().await?;
 
     // 一時ファイルを作成
-    let temp_file = NamedTempFile::new()
-        .map_err(|e| DownloaderError::Io(e))?;
+    let temp_file = NamedTempFile::new().map_err(|e| DownloaderError::Io(e))?;
     let temp_path = temp_file.path().to_path_buf();
 
     // yt-dlp コマンドを実行
@@ -97,15 +96,13 @@ pub async fn list_formats(url: &str) -> Result<Vec<FormatInfo>> {
 
 /// yt-dlp がインストールされているかチェック
 async fn check_ytdlp_installed() -> Result<()> {
-    let output = Command::new("yt-dlp")
-        .arg("--version")
-        .output()
-        .await;
+    let output = Command::new("yt-dlp").arg("--version").output().await;
 
     match output {
         Ok(output) if output.status.success() => Ok(()),
         _ => Err(DownloaderError::DependencyMissing(
-            "yt-dlp is not installed. Please install it from https://github.com/yt-dlp/yt-dlp".to_string()
+            "yt-dlp is not installed. Please install it from https://github.com/yt-dlp/yt-dlp"
+                .to_string(),
         )),
     }
 }
