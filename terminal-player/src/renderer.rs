@@ -5,7 +5,6 @@ use image::{DynamicImage, ImageBuffer};
 use crate::char_maps;
 use media_core::video::VideoFrame;
 
-/// レンダリング設定
 #[derive(Debug, Clone)]
 pub struct RenderConfig {
     pub target_width: u32,
@@ -29,7 +28,6 @@ impl Default for RenderConfig {
     }
 }
 
-/// ASCII文字情報とRGB色情報を含む構造体
 #[derive(Debug, Clone)]
 pub struct RenderedFrame {
     pub ascii_text: String,
@@ -38,14 +36,12 @@ pub struct RenderedFrame {
     pub height: u32,
 }
 
-/// ASCII アートレンダラー
 pub struct AsciiRenderer {
     config: RenderConfig,
     resizer: fr::Resizer,
 }
 
 impl AsciiRenderer {
-    /// 新しいレンダラーを作成
     pub fn new(config: RenderConfig) -> Self {
         Self {
             config,
@@ -53,28 +49,23 @@ impl AsciiRenderer {
         }
     }
 
-    /// 設定を更新
     pub fn update_config(&mut self, config: RenderConfig) {
         self.config = config;
     }
 
-    /// ターミナルサイズに基づいて解像度を更新
     pub fn update_resolution(&mut self, width: u16, height: u16) {
         self.config.target_width = (width / self.config.width_modifier as u16) as u32;
         self.config.target_height = height as u32;
     }
 
-    /// 文字マップを変更
     pub fn set_char_map(&mut self, index: u8) {
         self.config.char_map_index = index;
     }
 
-    /// グレースケールモードを切り替え
     pub fn set_grayscale(&mut self, grayscale: bool) {
         self.config.grayscale = grayscale;
     }
 
-    /// VideoFrameをASCIIアートにレンダリング
     pub fn render_video_frame(&mut self, frame: &VideoFrame) -> Result<RenderedFrame> {
         let dynamic_image = frame
             .to_dynamic_image()
@@ -83,15 +74,11 @@ impl AsciiRenderer {
         self.render_image(&dynamic_image)
     }
 
-    /// DynamicImageをASCIIアートにレンダリング
     pub fn render_image(&mut self, image: &DynamicImage) -> Result<RenderedFrame> {
-        // 画像をターゲットサイズにリサイズ
         let resized_image = self.resize_image(image)?;
 
-        // RGB画像に変換
         let rgb_image = resized_image.to_rgb8();
 
-        // ASCII文字列とRGBデータを生成
         let (ascii_text, rgb_data) = self.image_to_ascii_with_color(&rgb_image);
 
         Ok(RenderedFrame {
@@ -102,7 +89,6 @@ impl AsciiRenderer {
         })
     }
 
-    /// 画像をリサイズ
     fn resize_image(&mut self, image: &DynamicImage) -> Result<DynamicImage> {
         let src_width = image.width();
         let src_height = image.height();
@@ -111,10 +97,8 @@ impl AsciiRenderer {
             return Ok(image.clone());
         }
 
-        // RGB画像に変換
         let rgb_image = image.to_rgb8();
 
-        // fast_image_resizeを使用してリサイズ
         let src_image = fr::images::Image::from_vec_u8(
             src_width,
             src_height,
@@ -146,7 +130,6 @@ impl AsciiRenderer {
         Ok(DynamicImage::ImageRgb8(resized_buffer))
     }
 
-    /// RGB画像をASCII文字とカラー情報に変換
     fn image_to_ascii_with_color(
         &self,
         rgb_image: &ImageBuffer<image::Rgb<u8>, Vec<u8>>,
@@ -162,25 +145,23 @@ impl AsciiRenderer {
                 let pixel = rgb_image.get_pixel(x, y);
                 let [r, g, b] = pixel.0;
 
-                // 輝度計算（ITU-R BT.709）
+                // ITU-R BT.709
                 let luminance = (0.2126 * r as f32 + 0.7152 * g as f32 + 0.0722 * b as f32) as u8;
 
-                // 文字にマッピング
                 let ch = char_maps::luminance_to_char(luminance, char_map);
                 ascii_text.push(ch);
 
-                // RGB情報を保存
                 rgb_data.push(r);
                 rgb_data.push(g);
                 rgb_data.push(b);
             }
 
-            // 改行を追加（オプション）
+            // Optional
             if self.config.add_newlines && y < height - 1 {
                 ascii_text.push('\r');
                 ascii_text.push('\n');
 
-                // 改行文字分のRGBデータを追加（黒で埋める）
+                // Add RGB data for new line characters (fill with black)
                 rgb_data.extend_from_slice(&[0, 0, 0, 0, 0, 0]);
             }
         }
@@ -210,12 +191,12 @@ mod tests {
 
         let mut renderer = AsciiRenderer::new(config);
 
-        // 2x2の小さな画像を作成
+        // Create a small 2x2 image
         let mut img = RgbImage::new(2, 2);
-        img.put_pixel(0, 0, Rgb([255, 255, 255])); // 白
-        img.put_pixel(1, 0, Rgb([0, 0, 0])); // 黒
-        img.put_pixel(0, 1, Rgb([128, 128, 128])); // グレー
-        img.put_pixel(1, 1, Rgb([200, 200, 200])); // 明るいグレー
+        img.put_pixel(0, 0, Rgb([255, 255, 255])); // White
+        img.put_pixel(1, 0, Rgb([0, 0, 0])); // Black
+        img.put_pixel(0, 1, Rgb([128, 128, 128])); // Gray
+        img.put_pixel(1, 1, Rgb([200, 200, 200])); // Light gray
 
         let dynamic_img = DynamicImage::ImageRgb8(img);
         let result = renderer.render_image(&dynamic_img).unwrap();

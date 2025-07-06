@@ -1,40 +1,40 @@
-//! ASCII文字マップの定義
+//! ASCII character map definition
 //!
-//! 様々な密度と特性を持つ文字セットを提供し、
-//! 画像の明度をテキスト文字にマッピングするために使用
+//! Provides character sets with various densities and characteristics,
+//! used to map image luminosity to text characters
 
-/// 基本的なASCII文字セット（10文字）
+/// Basic ASCII character set (10 characters)
 pub const CHARS_BASIC: &str = " .:-=+*#%@";
 
-/// 拡張ASCII文字セット（67文字）
+/// Extended ASCII character set (67 characters)
 pub const CHARS_EXTENDED: &str =
     r#" .'`^",:;Il!i~+_-?][}{1)(|/tfjrxnuvczXYUJCLQ0OZmwqpdbkhao*#MW&8%B@$"#;
 
-/// 完全ASCII文字セット（92文字）
+/// Full ASCII character set (92 characters)
 pub const CHARS_FULL: &str = r#" `.-':_,^=;><+!rc*/z?sLTv)J7(|Fi{C}fI31tlu[neoZ5Yxjya]2ESwqkP6h9d4VpOGbUAKXHm8RD#$Bg0MNWQ%&@"#;
 
-/// ブロック文字（Unicode）
+/// Block characters (Unicode)
 pub const CHARS_BLOCKS: &str = " ░▒▓█";
 
-/// 点字文字
+/// Braille
 pub const CHARS_BRAILLE: &str = " ⠁⠃⠇⠏⠟⠿⣿";
 
-/// ドット文字
+/// Dot
 pub const CHARS_DOTS: &str = " ·∶⁚⁛⁜⁝⁞ ⣿";
 
-/// グラデーション文字
+/// Gradient
 pub const CHARS_GRADIENT: &str = " ▁▂▃▄▅▆▇█";
 
-/// 2値文字（白黒）
+/// Binary character (B/W)
 pub const CHARS_BINARY: &str = " █";
 
-/// 2値ドット文字
+/// Binary dot character
 pub const CHARS_BINARY_DOTS: &str = " ⣿";
 
-/// 絵文字風文字
+/// Pictograph-style character
 pub const CHARS_EMOJI: &str = " ·•○●";
 
-/// 利用可能な全ての文字マップ
+/// All available character maps
 pub const CHAR_MAPS: &[&str] = &[
     CHARS_BASIC,
     CHARS_EXTENDED,
@@ -48,7 +48,7 @@ pub const CHAR_MAPS: &[&str] = &[
     CHARS_EMOJI,
 ];
 
-/// 文字マップの説明
+/// Character map description
 pub const CHAR_MAP_NAMES: &[&str] = &[
     "Basic ASCII (10 chars)",
     "Extended ASCII (67 chars)",
@@ -62,24 +62,24 @@ pub const CHAR_MAP_NAMES: &[&str] = &[
     "Emoji Style",
 ];
 
-/// 指定されたインデックスの文字マップを取得
+/// Obtains a character map for a given index
 pub fn get_char_map(index: u8) -> &'static str {
     let index = (index as usize) % CHAR_MAPS.len();
     CHAR_MAPS[index]
 }
 
-/// 指定されたインデックスの文字マップ名を取得
+/// Obtains the character map name at the specified index
 pub fn get_char_map_name(index: u8) -> &'static str {
     let index = (index as usize) % CHAR_MAP_NAMES.len();
     CHAR_MAP_NAMES[index]
 }
 
-/// 文字マップの総数を取得
+/// Get the total number of character maps
 pub fn char_map_count() -> usize {
     CHAR_MAPS.len()
 }
 
-/// 明度値（0-255）を文字にマッピング
+/// Mapping lightness values (0-255) to characters
 pub fn luminance_to_char(luminance: u8, char_map: &str) -> char {
     let chars: Vec<char> = char_map.chars().collect();
     if chars.is_empty() {
@@ -98,7 +98,7 @@ mod tests {
     #[test]
     fn test_char_map_access() {
         assert!(!get_char_map(0).is_empty());
-        assert!(!get_char_map(255).is_empty()); // オーバーフローテスト
+        assert!(!get_char_map(255).is_empty()); // overflow test
         assert_eq!(get_char_map(0), CHARS_BASIC);
     }
 
@@ -108,7 +108,7 @@ mod tests {
         assert_eq!(luminance_to_char(0, char_map), ' ');
         assert_eq!(luminance_to_char(255, char_map), '@');
 
-        // 中間値のテスト
+        // Intermediate value test
         let mid_char = luminance_to_char(128, char_map);
         assert!(mid_char != ' ' && mid_char != '@');
     }

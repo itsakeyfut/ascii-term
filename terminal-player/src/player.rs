@@ -12,7 +12,6 @@ use crate::renderer::{AsciiRenderer, RenderConfig, RenderedFrame};
 use crate::terminal::Terminal;
 use media_core::{MediaFile, MediaType};
 
-/// プレイヤー設定
 #[derive(Debug, Clone)]
 pub struct PlayerConfig {
     pub fps: Option<f64>,
@@ -40,7 +39,6 @@ impl Default for PlayerConfig {
     }
 }
 
-/// プレイヤー制御コマンド
 #[derive(Debug, Clone)]
 pub enum PlayerCommand {
     Play,
@@ -57,7 +55,6 @@ pub enum PlayerCommand {
     Resize(u16, u16),
 }
 
-/// プレイヤーの状態
 #[derive(Debug, Clone, PartialEq)]
 pub enum PlayerState {
     Playing,
@@ -65,27 +62,25 @@ pub enum PlayerState {
     Stopped,
 }
 
-/// メディアプレーヤー
 pub struct Player {
     media_file: MediaFile,
     config: PlayerConfig,
     state: Arc<AtomicBool>, // true = playing, false = paused
     stop_signal: Arc<AtomicBool>,
 
-    // チャンネル
+    // Channel
     command_tx: Sender<PlayerCommand>,
     command_rx: Receiver<PlayerCommand>,
     frame_tx: Sender<RenderedFrame>,
     frame_rx: Receiver<RenderedFrame>,
 
-    // コンポーネント
+    // Component
     renderer: AsciiRenderer,
     terminal: Option<Terminal>,
     audio_player: Option<AudioPlayer>,
 }
 
 impl Player {
-    /// 新しいプレイヤーを作成
     pub fn new(media_file: MediaFile, config: PlayerConfig) -> Result<Self> {
         let (command_tx, command_rx) = unbounded();
         let (frame_tx, frame_rx) = unbounded();
@@ -101,7 +96,6 @@ impl Player {
 
         let renderer = AsciiRenderer::new(render_config);
 
-        // オーディオプレイヤーの初期化
         let audio_player = if config.enable_audio && media_file.info.has_audio {
             match AudioPlayer::new(&media_file.path) {
                 Ok(player) => {
@@ -133,9 +127,7 @@ impl Player {
         })
     }
 
-    /// プレイヤーを実行
     pub async fn run(&mut self) -> Result<()> {
-        // ターミナルを初期化
         let terminal = Terminal::new(
             self.command_tx.clone(),
             self.frame_rx.clone(),
@@ -143,7 +135,6 @@ impl Player {
         )?;
         self.terminal = Some(terminal);
 
-        // メディアタイプに応じて適切な再生方法を選択
         match self.media_file.media_type {
             MediaType::Video => self.play_video().await,
             MediaType::Audio => self.play_audio().await,
@@ -157,17 +148,14 @@ impl Player {
 
         let frame_duration = Duration::from_secs_f64(1.0 / fps);
 
-        // 動画用の独立したMediaFileを作成
         let video_media_file = MediaFile::open(&self.media_file.path)?;
         let mut pipeline = PipelineBuilder::new().buffer_size(8).build();
 
-        // 動画用MediaFileをPipelineに設定
         pipeline.set_media(video_media_file)?;
         pipeline.start()?;
 
         println!("Video pipeline started. Press 'space' to play/pause, 'q' to quit.");
 
-        // ターミナルを別スレッドで開始
         if let Some(terminal) = self.terminal.take() {
             let _terminal_handle = tokio::spawn(async move {
                 if let Err(e) = terminal.run().await {
@@ -176,7 +164,6 @@ impl Player {
             });
         }
 
-        // 自動再生を開始
         self.state.store(true, Ordering::Relaxed);
 
         // 音声と動画を同期開始
@@ -195,37 +182,30 @@ impl Player {
             false
         };
 
-        // フレーム送信ループ
         let mut last_frame_time = Instant::now();
         let mut frame_count = 0u64;
         let playback_start_time = Instant::now();
         let mut video_finished = false;
 
         loop {
-            // 停止シグナルをチェック
             if self.stop_signal.load(Ordering::Relaxed) {
                 println!("Stop signal received, exiting");
                 break;
             }
 
-            // コマンドを処理
             while let Ok(command) = self.command_rx.try_recv() {
                 self.handle_command(command).await?;
             }
 
-            // 再生中で動画がまだ終わっていない場合のみフレームを処理
             if self.state.load(Ordering::Relaxed) && !video_finished {
                 let now = Instant::now();
                 let elapsed = now.duration_since(last_frame_time);
 
                 if elapsed >= frame_duration || self.config.allow_frame_skip {
-                    // Pipeline から次のフレームを取得
                     match pipeline.next_frame()? {
                         Some(video_frame) => {
-                            // フレームをレンダリング
                             let rendered_frame = self.renderer.render_video_frame(&video_frame)?;
 
-                            // フレームを送信
                             if self.frame_tx.send(rendered_frame).is_err() {
                                 println!("Frame receiver closed");
                                 break;
@@ -234,30 +214,26 @@ impl Player {
                             frame_count += 1;
                             last_frame_time = now;
 
-                            // フレームスキップの処理
                             if self.config.allow_frame_skip && elapsed > frame_duration * 2 {
                                 println!("Frame skip detected at frame {}", frame_count);
                             }
 
-                            // デバッグ情報
-                            if frame_count % 900 == 0 {
-                                let playback_time = playback_start_time.elapsed().as_secs_f64();
-                                let expected_time = frame_count as f64 / fps;
-                                println!(
-                                    "Video frames: {}, playback: {:.1}s, expected: {:.1}s",
-                                    frame_count, playback_time, expected_time
-                                );
-                            }
+                            // if frame_count % 900 == 0 {
+                            //     let playback_time = playback_start_time.elapsed().as_secs_f64();
+                            //     let expected_time = frame_count as f64 / fps;
+                            //     println!(
+                            //         "Video frames: {}, playback: {:.1}s, expected: {:.1}s",
+                            //         frame_count, playback_time, expected_time
+                            //     );
+                            // }
                         }
                         None => {
-                            // 動画ストリーム終了
                             if pipeline.is_finished() {
                                 println!("Video stream finished");
                                 video_finished = true;
 
                                 if self.config.loop_playback {
                                     println!("Restarting video loop...");
-                                    // ループ再生の処理
                                     pipeline.stop()?;
 
                                     let loop_media_file = MediaFile::open(&self.media_file.path)?;
@@ -267,22 +243,18 @@ impl Player {
                                     video_finished = false;
                                     println!("Video loop restarted");
                                 } else {
-                                    // 動画終了、音声の完了を待つ
                                     println!("Video finished, waiting for audio to complete...");
                                     break;
                                 }
                             } else {
-                                // まだ終了していない場合、少し待つ
                                 time::sleep(Duration::from_millis(10)).await;
                             }
                         }
                     }
                 } else {
-                    // フレームタイミングまで待機
                     time::sleep(Duration::from_millis(1)).await;
                 }
             } else {
-                // 動画が終了している場合、音声の完了を待つ
                 if video_finished && audio_started {
                     if let Some(audio_player) = &self.audio_player {
                         if audio_player.is_playing() {
@@ -297,13 +269,11 @@ impl Player {
                         break;
                     }
                 } else {
-                    // 一時停止中
                     time::sleep(Duration::from_millis(16)).await;
                 }
             }
         }
 
-        // 音声の完了を待つ（最大60秒）
         if audio_started && !self.config.loop_playback {
             println!("Ensuring audio completion...");
             let audio_wait_start = Instant::now();
@@ -319,13 +289,11 @@ impl Player {
                     break;
                 }
 
-                // 停止シグナルをチェック
                 if self.stop_signal.load(Ordering::Relaxed) {
                     println!("Stop signal received during audio wait");
                     break;
                 }
 
-                // コマンドを処理
                 while let Ok(command) = self.command_rx.try_recv() {
                     self.handle_command(command).await?;
                 }
@@ -338,11 +306,9 @@ impl Player {
             }
         }
 
-        // クリーンアップ
         println!("Cleaning up video and audio resources...");
         pipeline.stop()?;
 
-        // 音声を停止
         if let Some(audio_player) = &mut self.audio_player {
             if let Err(e) = audio_player.stop() {
                 eprintln!("Warning: Failed to stop audio: {}", e);
@@ -360,11 +326,9 @@ impl Player {
         Ok(())
     }
 
-    /// 音声再生
     async fn play_audio(&mut self) -> Result<()> {
         println!("Starting audio-only playback");
 
-        // 音声プレイヤーの開始
         if let Some(audio_player) = &mut self.audio_player {
             if let Err(e) = audio_player.play() {
                 eprintln!("Warning: Failed to start audio: {}", e);
@@ -375,7 +339,6 @@ impl Player {
             return Err(anyhow::anyhow!("No audio player available"));
         }
 
-        // ターミナルを開始（音声再生制御用）
         if let Some(terminal) = self.terminal.take() {
             let _terminal_handle = tokio::spawn(async move {
                 if let Err(e) = terminal.run().await {
@@ -384,22 +347,18 @@ impl Player {
             });
         }
 
-        // 音声再生の完了を待つ制御ループ
         let playback_start = Instant::now();
 
         loop {
-            // 停止シグナルをチェック
             if self.stop_signal.load(Ordering::Relaxed) {
                 println!("Stop signal received");
                 break;
             }
 
-            // コマンドを処理
             while let Ok(command) = self.command_rx.try_recv() {
                 self.handle_command(command).await?;
             }
 
-            // 音声プレイヤーの状態をチェック
             if let Some(audio_player) = &self.audio_player {
                 if !audio_player.is_playing() {
                     println!("Audio playback completed naturally");
@@ -413,7 +372,6 @@ impl Player {
             time::sleep(Duration::from_millis(500)).await;
         }
 
-        // 音声停止
         if let Some(audio_player) = &mut self.audio_player {
             if let Err(e) = audio_player.stop() {
                 eprintln!("Warning: Failed to stop audio: {}", e);
@@ -427,13 +385,10 @@ impl Player {
         Ok(())
     }
 
-    /// 静止画表示
     async fn display_image(&mut self) -> Result<()> {
-        // 画像を読み込み
         let image = image::open(&self.media_file.path)?;
         let rendered_frame = self.renderer.render_image(&image)?;
 
-        // ターミナルを開始
         if let Some(terminal) = self.terminal.take() {
             let _terminal_handle = tokio::spawn(async move {
                 if let Err(e) = terminal.run().await {
@@ -442,10 +397,8 @@ impl Player {
             });
         }
 
-        // フレームを送信
         self.frame_tx.send(rendered_frame)?;
 
-        // 制御ループ
         loop {
             if self.stop_signal.load(Ordering::Relaxed) {
                 break;
@@ -461,7 +414,6 @@ impl Player {
         Ok(())
     }
 
-    /// コマンドを処理
     async fn handle_command(&mut self, command: PlayerCommand) -> Result<()> {
         match command {
             PlayerCommand::Play => {
@@ -551,7 +503,6 @@ impl Player {
         Ok(())
     }
 
-    /// コマンド送信用のハンドルを取得
     pub fn command_sender(&self) -> Sender<PlayerCommand> {
         self.command_tx.clone()
     }

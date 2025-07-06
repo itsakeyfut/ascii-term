@@ -62,23 +62,19 @@ struct Args {
 async fn main() -> Result<()> {
     let args = Args::parse();
 
-    // 音声診断モード
     if args.diagnose_audio {
         println!("Running audio system diagnostics...");
         return audio::diagnose_audio_system();
     }
 
-    // 初期化
     media_core::init()?;
 
-    // 入力の処理
     let media_path = if is_url(&args.input) {
         handle_url_input(&args.input, &args.browser).await?
     } else {
         args.input.clone()
     };
 
-    // メディアファイルを開く
     let media_file = MediaFile::open(&media_path)?;
 
     println!("Media Info:");
@@ -108,12 +104,10 @@ async fn main() -> Result<()> {
         }
     }
 
-    // 音声再生の設定
     let enable_audio = !args.no_audio && media_file.info.has_audio;
 
     if enable_audio {
         println!("Audio playback enabled");
-        // 音声システムの簡易チェック
         if let Err(e) = audio::diagnose_audio_system() {
             eprintln!("Warning: Audio system check failed: {}", e);
             eprintln!("Continuing with audio disabled...");
@@ -122,7 +116,6 @@ async fn main() -> Result<()> {
         println!("Audio playback disabled");
     }
 
-    // プレイヤー設定
     let config = player::PlayerConfig {
         fps: args.fps,
         loop_playback: args.loop_playback,
@@ -134,7 +127,6 @@ async fn main() -> Result<()> {
         enable_audio: !args.no_audio && media_file.info.has_audio,
     };
 
-    // プレイヤーを作成して実行
     let mut player = player::Player::new(media_file, config)?;
     player.run().await?;
 
@@ -158,7 +150,7 @@ async fn handle_url_input(url: &str, browser: &str) -> Result<String> {
         }
     }
 
-    // その他のURLの場合は直接ダウンロード
+    // For other URLs, download directly
     println!("Downloading media file...");
     let temp_path = download_url(url).await?;
     Ok(temp_path)

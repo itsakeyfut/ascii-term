@@ -5,16 +5,13 @@ use tokio::process::Command;
 
 use crate::errors::{DownloaderError, Result};
 
-/// YouTube動画をダウンロード
+/// Download YouTube video
 pub async fn download_video(url: &str, browser: &str) -> Result<PathBuf> {
-    // yt-dlp がインストールされているかチェック
     check_ytdlp_installed().await?;
 
-    // 一時ファイルを作成
     let temp_file = NamedTempFile::new().map_err(|e| DownloaderError::Io(e))?;
     let temp_path = temp_file.path().to_path_buf();
 
-    // yt-dlp コマンドを実行
     let output = Command::new("yt-dlp")
         .arg(url)
         // .arg("--cookies-from-browser")
@@ -35,12 +32,11 @@ pub async fn download_video(url: &str, browser: &str) -> Result<PathBuf> {
         )));
     }
 
-    // 一時ファイルのパスを永続化
     let persistent_path = temp_file.into_temp_path();
     Ok(persistent_path.to_path_buf())
 }
 
-/// 動画情報を取得（メタデータのみ）
+/// Get video information (metadata only)
 pub async fn get_video_info(url: &str) -> Result<VideoInfo> {
     check_ytdlp_installed().await?;
 
@@ -67,7 +63,7 @@ pub async fn get_video_info(url: &str) -> Result<VideoInfo> {
     Ok(info)
 }
 
-/// 利用可能な形式を取得
+/// Get available formats
 pub async fn list_formats(url: &str) -> Result<Vec<FormatInfo>> {
     check_ytdlp_installed().await?;
 
@@ -94,7 +90,7 @@ pub async fn list_formats(url: &str) -> Result<Vec<FormatInfo>> {
     Ok(formats)
 }
 
-/// yt-dlp がインストールされているかチェック
+/// Check if yt-dlp is installed
 async fn check_ytdlp_installed() -> Result<()> {
     let output = Command::new("yt-dlp").arg("--version").output().await;
 
@@ -107,7 +103,7 @@ async fn check_ytdlp_installed() -> Result<()> {
     }
 }
 
-/// 動画情報
+/// Video information structure
 #[derive(Debug, serde::Deserialize)]
 pub struct VideoInfo {
     pub id: String,
@@ -124,7 +120,7 @@ pub struct VideoInfo {
     pub formats: Vec<FormatInfo>,
 }
 
-/// 形式情報
+/// Format information structure
 #[derive(Debug, serde::Deserialize)]
 pub struct FormatInfo {
     pub format_id: String,
@@ -135,9 +131,9 @@ pub struct FormatInfo {
     pub vcodec: Option<String>,
     pub acodec: Option<String>,
     pub filesize: Option<i64>,
-    pub tbr: Option<f64>, // 総ビットレート
-    pub vbr: Option<f64>, // 動画ビットレート
-    pub abr: Option<f64>, // 音声ビットレート
+    pub tbr: Option<f64>, // Total bitrate
+    pub vbr: Option<f64>, // Video bitrate
+    pub abr: Option<f64>, // Audio bitrate
 }
 
 #[cfg(test)]
@@ -146,8 +142,8 @@ mod tests {
 
     #[tokio::test]
     async fn test_ytdlp_check() {
-        // yt-dlpのチェックテスト
-        // 実際の環境では適切にスキップされる
+        // Test yt-dlp availability check
+        // Should be properly skipped in actual environment
         let result = check_ytdlp_installed().await;
         match result {
             Ok(()) => println!("yt-dlp is available"),
