@@ -8,6 +8,8 @@
 
 ![cookie_bomb_rush](./gallery/cookie_bomb_rush.gif)
 
+![yuruyuri](./gallery/yuruyuri.gif)
+
 See More ⇒ [Gallery](./gallery/gallery.md)
 
 - [Japanese](./README-JA.md)

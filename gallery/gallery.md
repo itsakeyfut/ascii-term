@@ -1,5 +1,17 @@
 # Gallery
 
+## beatmania IIDX - smooooch・∀・
+
+![beatmania IIDX - smooooch・∀・](./smooooch.gif)
+
+## Love Cheat!
+
+![Love Cheat!](./love_cheat.gif)
+
+## Dual existence
+
+![Dual existence](./dual_existence.gif)
+
 ## 【東方】Bad Apple!! ＰＶ【影絵】
 
 ![【東方】Bad Apple!! ＰＶ【影絵】](./bad_apple.gif)
