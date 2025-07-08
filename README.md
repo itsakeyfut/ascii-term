@@ -395,6 +395,8 @@ Contributions are welcome! Areas of particular interest:
 - **Memory usage optimization**
 - **Cross-platform compatibility enhancements**
 
+Please see [CONTRIBUTING.md](.github/CONTRIBUTING.md) for details.
+
 ## License
 
 MIT License
