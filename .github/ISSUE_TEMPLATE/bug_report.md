@@ -1,0 +1,40 @@
+name: Bug Report
+description: Report a bug or unexpected behavior
+title: "[Bug]: "
+labels: ["bug"]
+assignees: []
+
+body:
+
+- type: textarea
+  id: description
+  attributes:
+  label: Description
+  description: Please describe the issue in detail.
+  validations:
+  required: true
+
+- type: textarea
+  id: steps
+  attributes:
+  label: Steps to Reproduce
+  description: How can we reproduce the bug?
+  placeholder: | 1. Run command '...' 2. Open file '...' 3. See error
+  validations:
+  required: true
+
+- type: input
+  id: version
+  attributes:
+  label: Version
+  description: What version are you using? (e.g., v1.0.0)
+
+- type: textarea
+  id: env
+  attributes:
+  label: Environment
+  description: Please provide OS, terminal, and any other relevant details.
+  placeholder: |
+  OS: Ubuntu 22.04
+  Terminal: Alacritty
+  Shell: zsh
