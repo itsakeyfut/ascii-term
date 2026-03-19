@@ -6,10 +6,10 @@ use tokio::process::Command;
 use crate::errors::{DownloaderError, Result};
 
 /// Download YouTube video
-pub async fn download_video(url: &str, browser: &str) -> Result<PathBuf> {
+pub async fn download_video(url: &str, _browser: &str) -> Result<PathBuf> {
     check_ytdlp_installed().await?;
 
-    let temp_file = NamedTempFile::new().map_err(|e| DownloaderError::Io(e))?;
+    let temp_file = NamedTempFile::new().map_err(DownloaderError::Io)?;
     let temp_path = temp_file.path().to_path_buf();
 
     let output = Command::new("yt-dlp")

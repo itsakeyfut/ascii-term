@@ -142,12 +142,12 @@ async fn handle_url_input(url: &str, browser: &str) -> Result<String> {
 
     let parsed_url = Url::parse(url)?;
 
-    if let Some(domain) = parsed_url.domain() {
-        if domain.contains("youtube.com") || domain.contains("youtu.be") {
-            println!("Downloading YouTube video...");
-            let temp_path = downloader::download_video(url, browser).await?;
-            return Ok(temp_path.to_string_lossy().to_string());
-        }
+    if let Some(domain) = parsed_url.domain()
+        && (domain.contains("youtube.com") || domain.contains("youtu.be"))
+    {
+        println!("Downloading YouTube video...");
+        let temp_path = downloader::download_video(url, browser).await?;
+        return Ok(temp_path.to_string_lossy().to_string());
     }
 
     // For other URLs, download directly

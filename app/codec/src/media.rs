@@ -13,7 +13,7 @@ pub enum MediaType {
 }
 
 /// メディアファイルの情報を保持する構造体
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Default)]
 pub struct MediaInfo {
     pub duration: Option<Duration>,
     pub width: Option<u32>,
@@ -25,23 +25,6 @@ pub struct MediaInfo {
     pub audio_codec: Option<String>,
     pub sample_rate: Option<u32>,
     pub channels: Option<u16>,
-}
-
-impl Default for MediaInfo {
-    fn default() -> Self {
-        Self {
-            duration: None,
-            width: None,
-            height: None,
-            fps: None,
-            has_video: false,
-            has_audio: false,
-            video_codec: None,
-            audio_codec: None,
-            sample_rate: None,
-            channels: None,
-        }
-    }
 }
 
 /// メディアファイルを表現する構造体
@@ -70,12 +53,8 @@ impl MediaFile {
             fps: avio_info.frame_rate(),
             has_video: avio_info.has_video(),
             has_audio: avio_info.has_audio(),
-            video_codec: avio_info
-                .primary_video()
-                .map(|v| format!("{:?}", v)),
-            audio_codec: avio_info
-                .primary_audio()
-                .map(|a| format!("{:?}", a)),
+            video_codec: avio_info.primary_video().map(|v| format!("{:?}", v)),
+            audio_codec: avio_info.primary_audio().map(|a| format!("{:?}", a)),
             sample_rate: avio_info.sample_rate(),
             channels: avio_info.channels().map(|c| c as u16),
         };

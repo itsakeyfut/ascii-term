@@ -3,9 +3,9 @@ use std::sync::atomic::{AtomicBool, Ordering};
 use std::time::{Duration, Instant};
 
 use anyhow::Result;
-use crossbeam_channel::{Receiver, Sender, unbounded};
 use codec::PipelineBuilder;
 use codec::video::VideoFrame;
+use crossbeam_channel::{Receiver, Sender, unbounded};
 use tokio::time;
 
 use crate::audio::AudioPlayer;
@@ -20,6 +20,7 @@ pub struct PlayerConfig {
     pub char_map_index: u8,
     pub grayscale: bool,
     pub width_modifier: u32,
+    #[allow(dead_code)]
     pub allow_frame_skip: bool,
     pub add_newlines: bool,
     pub enable_audio: bool,
@@ -41,6 +42,7 @@ impl Default for PlayerConfig {
 }
 
 #[derive(Debug, Clone)]
+#[allow(dead_code)]
 pub enum PlayerCommand {
     Play,
     Pause,
@@ -57,6 +59,7 @@ pub enum PlayerCommand {
 }
 
 #[derive(Debug, Clone, PartialEq)]
+#[allow(dead_code)]
 pub enum PlayerState {
     Playing,
     Paused,
@@ -214,7 +217,6 @@ impl Player {
                         None => {
                             if pipeline.is_finished() {
                                 println!("Video stream finished");
-                                video_finished = true;
 
                                 if self.config.loop_playback {
                                     println!("Restarting video loop...");
@@ -267,23 +269,21 @@ impl Player {
                         time::sleep(wait.min(Duration::from_millis(5))).await;
                     }
                 }
-            } else {
-                if video_finished && audio_started {
-                    if let Some(audio_player) = &self.audio_player {
-                        if audio_player.is_playing() {
-                            println!("Waiting for audio to finish...");
-                            time::sleep(Duration::from_millis(1000)).await;
-                            continue;
-                        } else {
-                            println!("Audio finished");
-                            break;
-                        }
+            } else if video_finished && audio_started {
+                if let Some(audio_player) = &self.audio_player {
+                    if audio_player.is_playing() {
+                        println!("Waiting for audio to finish...");
+                        time::sleep(Duration::from_millis(1000)).await;
+                        continue;
                     } else {
+                        println!("Audio finished");
                         break;
                     }
                 } else {
-                    time::sleep(Duration::from_millis(16)).await;
+                    break;
                 }
+            } else {
+                time::sleep(Duration::from_millis(16)).await;
             }
         }
 
@@ -516,6 +516,7 @@ impl Player {
         Ok(())
     }
 
+    #[allow(dead_code)]
     pub fn command_sender(&self) -> Sender<PlayerCommand> {
         self.command_tx.clone()
     }

@@ -166,6 +166,7 @@ impl AudioProcessor {
 struct SimpleResampler {
     input_sample_rate: u32,
     input_channels: u16,
+    #[allow(dead_code)]
     input_format: AudioFormat,
     output_sample_rate: u32,
     output_channels: u16,

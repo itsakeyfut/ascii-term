@@ -72,26 +72,20 @@ impl Iterator for DirectAudioSource {
                 }
                 Err(RecvTimeoutError::Timeout) => {
                     if self.is_finished.load(Ordering::Relaxed) {
-                        loop {
-                            match self.receiver.try_recv() {
-                                Ok(data) => {
-                                    self.current_data = data;
-                                    self.position = 0;
-                                    break;
-                                }
-                                Err(_) => {
-                                    println!(
-                                        "DirectAudioSource: Stream ended, played {:.1}s",
-                                        self.total_samples_played as f64
-                                            / (self.sample_rate as f64 * self.channels as f64)
-                                    );
-                                    return None;
-                                }
-                            }
+                        if let Ok(data) = self.receiver.try_recv() {
+                            self.current_data = data;
+                            self.position = 0;
+                        } else {
+                            println!(
+                                "DirectAudioSource: Stream ended, played {:.1}s",
+                                self.total_samples_played as f64
+                                    / (self.sample_rate as f64 * self.channels as f64)
+                            );
+                            return None;
                         }
                     } else {
                         self.buffer_underrun_count += 1;
-                        if self.buffer_underrun_count % 200 == 0 {
+                        if self.buffer_underrun_count.is_multiple_of(200) {
                             let played_seconds = self.total_samples_played as f64
                                 / (self.sample_rate as f64 * self.channels as f64);
                             println!(
@@ -124,6 +118,7 @@ impl Iterator for DirectAudioSource {
     }
 }
 
+#[allow(dead_code)]
 pub struct AudioPlayer {
     _stream: OutputStream,
     sink: Sink,
@@ -147,7 +142,7 @@ impl AudioPlayer {
         }
 
         let sample_rate = media_file.info.sample_rate.unwrap_or(44100);
-        let channels = media_file.info.channels.unwrap_or(2) as u16;
+        let channels = media_file.info.channels.unwrap_or(2);
 
         println!(
             "Media file info: {} Hz, {} channels, duration: {:?}",
@@ -247,6 +242,7 @@ impl AudioPlayer {
         Ok(())
     }
 
+    #[allow(dead_code)]
     pub fn volume(&self) -> f32 {
         if self.is_muted.load(Ordering::Relaxed) {
             0.0
@@ -285,10 +281,12 @@ impl AudioPlayer {
         self.is_muted.load(Ordering::Relaxed)
     }
 
+    #[allow(dead_code)]
     pub fn sample_rate(&self) -> u32 {
         self.sample_rate
     }
 
+    #[allow(dead_code)]
     pub fn channels(&self) -> u16 {
         self.channels
     }
@@ -336,20 +334,18 @@ fn decode_audio_loop(
         }
 
         match decoder.decode_one() {
-            Ok(Some(frame)) => {
-                match frame.samples_as_f32() {
-                    Ok(samples) if !samples.is_empty() => {
-                        total_samples_sent += samples.len() as u64;
-                        if sender.send(samples).is_err() {
-                            break;
-                        }
-                    }
-                    Ok(_) => {}
-                    Err(e) => {
-                        eprintln!("Audio frame conversion error: {}", e);
+            Ok(Some(frame)) => match frame.samples_as_f32() {
+                Ok(samples) if !samples.is_empty() => {
+                    total_samples_sent += samples.len() as u64;
+                    if sender.send(samples).is_err() {
+                        break;
                     }
                 }
-            }
+                Ok(_) => {}
+                Err(e) => {
+                    eprintln!("Audio frame conversion error: {}", e);
+                }
+            },
             Ok(None) => {
                 println!("Audio stream EOF");
                 break;
@@ -364,8 +360,7 @@ fn decode_audio_loop(
     is_finished.store(true, Ordering::Relaxed);
 
     let final_elapsed = start_time.elapsed();
-    let final_audio_time =
-        total_samples_sent as f64 / (sample_rate as f64 * channels as f64);
+    let final_audio_time = total_samples_sent as f64 / (sample_rate as f64 * channels as f64);
     let coverage = if expected_duration_secs > 0.0 {
         (final_audio_time / expected_duration_secs) * 100.0
     } else {

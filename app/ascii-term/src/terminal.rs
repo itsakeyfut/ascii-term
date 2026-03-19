@@ -45,10 +45,8 @@ impl Terminal {
         // メインループ
         loop {
             // イベントをポーリング
-            if event::poll(Duration::from_millis(16))? {
-                if self.handle_input_event()? {
-                    break; // 終了
-                }
+            if event::poll(Duration::from_millis(16))? && self.handle_input_event()? {
+                break; // 終了
             }
 
             // フレームの受信と描画
@@ -137,16 +135,16 @@ impl Terminal {
             execute!(out, MoveTo(0, y as u16))?;
 
             let mut row_string = String::with_capacity(width * 20);
-            for i in row_start..row_end {
-                let rgb_index = i * 3;
+            for (j, ch) in chars[row_start..row_end].iter().enumerate() {
+                let rgb_index = (row_start + j) * 3;
                 if rgb_index + 2 < frame.rgb_data.len() {
                     let r = frame.rgb_data[rgb_index];
                     let g = frame.rgb_data[rgb_index + 1];
                     let b = frame.rgb_data[rgb_index + 2];
                     let color = Color::Rgb { r, g, b };
-                    row_string.push_str(&format!("{}", chars[i].stylize().with(color)));
+                    row_string.push_str(&format!("{}", ch.stylize().with(color)));
                 } else {
-                    row_string.push(chars[i]);
+                    row_string.push(*ch);
                 }
             }
             write!(out, "{}", row_string)?;

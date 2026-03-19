@@ -224,8 +224,8 @@ impl FormatDetector {
             [0x42, 0x40, _, _] => Some(SupportedImageFormat::Bmp), // BMP
             _ => {
                 // TIFF (little endian and big endian)
-                if &header[..4] == [0x49, 0x49, 0x2A, 0x00]
-                    || &header[..4] == [0x4D, 0x4D, 0x00, 0x2A]
+                if header[..4] == [0x49, 0x49, 0x2A, 0x00]
+                    || header[..4] == [0x4D, 0x4D, 0x00, 0x2A]
                 {
                     Some(SupportedImageFormat::Tiff)
                 } else {

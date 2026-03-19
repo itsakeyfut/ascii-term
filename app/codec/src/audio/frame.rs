@@ -77,6 +77,7 @@ pub struct AudioFrame {
 
 impl AudioFrame {
     /// 新しいフレームを作成
+    #[allow(clippy::too_many_arguments)]
     pub fn new(
         data: Vec<u8>,
         samples: usize,

@@ -182,7 +182,11 @@ impl VideoFrame {
         let mat_data = mat.data_bytes_mut()?;
 
         if self.format == FrameFormat::RGB8 || self.format == FrameFormat::RGBA8 {
-            let channels = if self.format == FrameFormat::RGB8 { 3 } else { 4 };
+            let channels = if self.format == FrameFormat::RGB8 {
+                3
+            } else {
+                4
+            };
             for i in 0..(self.data.len() / channels) {
                 let base_idx = i * channels;
                 mat_data[base_idx] = self.data[base_idx + 2]; // B
