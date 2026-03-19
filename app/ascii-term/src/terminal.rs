@@ -42,10 +42,6 @@ impl Terminal {
         // ターミナルの初期化
         self.init_terminal()?;
 
-        // 実際のターミナルサイズを取得してレンダラーに通知
-        let (width, height) = terminal::size()?;
-        self.send_command(PlayerCommand::Resize(width, height))?;
-
         // メインループ
         loop {
             // イベントをポーリング
@@ -214,9 +210,12 @@ impl Terminal {
                 }
             }
 
-            Event::Resize(width, height) => {
-                self.send_command(PlayerCommand::Resize(width, height))?;
+            Event::Resize(_, _) => {
+                // 解像度は起動時に固定。画面クリアして最終フレームを再描画するだけ
                 self.clear_screen()?;
+                if let Some(ref frame) = self.last_frame.clone() {
+                    self.display_frame(frame)?;
+                }
             }
 
             _ => {}
