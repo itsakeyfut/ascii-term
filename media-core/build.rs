@@ -33,11 +33,11 @@ fn configure_windows() {
     println!("cargo:rustc-link-lib=user32");
     println!("cargo:rustc-link-lib=kernel32");
 
-    // Windows での vcpkg 使用を推奨
-    if let Ok(vcpkg_root) = env::var("VCPKG_ROOT") {
+    // FFmpeg: manually installed, pointed to by FFMPEG_DIR
+    if let Ok(ffmpeg_dir) = env::var("FFMPEG_DIR") {
         println!(
-            "cargo:rustc-link-search=native={}\\installed\\x64-windows\\lib",
-            vcpkg_root
+            "cargo:rustc-link-search=native={}\\lib",
+            ffmpeg_dir
         );
     }
 }
@@ -66,47 +66,18 @@ fn configure_linux() {
 }
 
 fn configure_opencv() {
-    // OpenCV 環境変数チェック
+    // OpenCV 環境変数チェック (OPENCV_DIR は cargo x setup で設定される)
     if let Ok(opencv_dir) = env::var("OPENCV_DIR") {
         println!("cargo:rustc-link-search=native={}/lib", opencv_dir);
-    }
-
-    // pkg-config を使用して OpenCV を検出
-    if pkg_config::probe_library("opencv4")
-        .or_else(|_| pkg_config::probe_library("opencv"))
-        .is_err()
-    {
-        println!("cargo:warning=OpenCV not found via pkg-config, using system defaults");
+        println!("cargo:rustc-link-search=native={}/x64/vc16/lib", opencv_dir);
     }
 }
 
 fn configure_ffmpeg() {
-    // FFmpeg 環境変数チェック
+    // FFmpeg 環境変数チェック (FFMPEG_DIR はユーザーが手動でインストールして設定する)
     if let Ok(ffmpeg_dir) = env::var("FFMPEG_DIR") {
         println!("cargo:rustc-link-search=native={}/lib", ffmpeg_dir);
-    }
-
-    // pkg-config を使用して FFmpeg を検出
-    let ffmpeg_libs = [
-        "libavformat",
-        "libavcodec",
-        "libavutil",
-        "libswscale",
-        "libswresample",
-    ];
-
-    for lib in &ffmpeg_libs {
-        if pkg_config::probe_library(lib).is_err() {
-            println!("cargo:warning={} not found via pkg-config", lib);
-        }
-    }
-
-    // 静的リンクが有効な場合の設定
-    if env::var("CARGO_FEATURE_FFMPEG_STATIC").is_ok() {
-        println!("cargo:rustc-link-lib=static=avformat");
-        println!("cargo:rustc-link-lib=static=avcodec");
-        println!("cargo:rustc-link-lib=static=avutil");
-        println!("cargo:rustc-link-lib=static=swscale");
-        println!("cargo:rustc-link-lib=static=swresample");
+    } else {
+        println!("cargo:warning=FFMPEG_DIR is not set. Please install FFmpeg and set FFMPEG_DIR.");
     }
 }

@@ -2,7 +2,8 @@
 members = [
     "media-core",
     "terminal-player",
-    "downloader"
+    "downloader",
+    "xtask"
 ]
 
 resolver = "3"

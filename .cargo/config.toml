@@ -1,4 +1,43 @@
+[alias]
+x = "run --package xtask --"
+
+# =============================================================================
+# Windows Build Configuration
+# =============================================================================
+# Native dependencies:
+# - FFmpeg: Manually installed by user (set FFMPEG_DIR to your install path)
+# - OpenCV: Official Windows release installed by `cargo x setup`
+# - LLVM:   Required for opencv-rs bindgen, installed by `cargo x setup`
+#
+# Run `cargo x setup` to install OpenCV and LLVM automatically.
+# FFmpeg must be installed manually - see README for instructions.
+# =============================================================================
+
+[target.x86_64-pc-windows-msvc]
+linker = "link.exe"
+
+rustflags = [
+    "-L", "D:\\libs\\vcpkg\\installed\\x64-windows\\lib",
+    "-L", "D:\\libs\\opencv\\build\\x64\\vc16\\lib",
+]
+
 [env]
-OPENSSL_DIR = "/usr"
-OPENSSL_LIB_DIR = "/usr/lib/x86_64-linux-gnu"
-OPENSSL_INCLUDE_DIR = "/usr/include"
+# FFmpeg: MSVC build via vcpkg at D:\libs\vcpkg (required for MSVC Rust toolchain)
+FFMPEG_DIR = { value = "D:\\libs\\vcpkg\\installed\\x64-windows", force = true }
+
+# LLVM/Clang: required for opencv-rs bindgen
+LIBCLANG_PATH = { value = "C:\\Program Files\\LLVM\\bin", force = true }
+
+# OpenCV: installed by `cargo x setup`
+# OPENCV_DIR is used by the opencv-rs build script
+OPENCV_DIR = { value = "D:\\libs\\opencv\\build", force = true }
+# OpenCV_DIR (mixed case) is used by cmake's find_package(OpenCV)
+OpenCV_DIR = { value = "D:\\libs\\opencv\\build", force = true }
+OPENCV_INCLUDE_PATHS = { value = "D:\\libs\\opencv\\build\\include", force = true }
+OPENCV_LINK_PATHS = { value = "D:\\libs\\opencv\\build\\x64\\vc16\\lib", force = true }
+OPENCV_LINK_LIBS = { value = "opencv_world490", force = true }
+
+# Linux/macOS OpenSSL
+OPENSSL_DIR = { value = "/usr", force = false }
+OPENSSL_LIB_DIR = { value = "/usr/lib/x86_64-linux-gnu", force = false }
+OPENSSL_INCLUDE_DIR = { value = "/usr/include", force = false }
