@@ -47,22 +47,14 @@ impl VideoFrame {
         }
     }
 
-    /// FFmpeg のフレームから VideoFrame を作成
-    pub fn from_ffmpeg_frame(
-        frame: &ffmpeg_next::frame::Video,
-        timestamp: Duration,
-        pts: i64,
-    ) -> Result<Self> {
+    /// avio の VideoFrame から VideoFrame を作成
+    pub fn from_avio_frame(frame: &avio::VideoFrame) -> Result<Self> {
         let width = frame.width();
         let height = frame.height();
-        let format = Self::convert_ffmpeg_format(frame.format())?;
-
-        // フレームデータをコピー
-        let mut data = Vec::new();
-        for plane in 0..frame.planes() {
-            let plane_data = frame.data(plane);
-            data.extend_from_slice(plane_data);
-        }
+        let format = Self::convert_avio_format(frame.format())?;
+        let timestamp = frame.timestamp().as_duration();
+        let pts = frame.timestamp().pts();
+        let data = frame.data();
 
         Ok(Self::new(data, width, height, format, timestamp, pts))
     }
@@ -73,7 +65,6 @@ impl VideoFrame {
         let width = size.width as u32;
         let height = size.height as u32;
 
-        // Mat のタイプからフォーマットを指定
         let mat_type = mat.typ();
         let format = match mat_type {
             opencv::core::CV_8UC3 => FrameFormat::BGR8,
@@ -87,7 +78,6 @@ impl VideoFrame {
             }
         };
 
-        // データをコピー
         let data = mat.data_bytes()?.to_vec();
 
         Ok(Self::new(data, width, height, format, timestamp, pts))
@@ -127,7 +117,6 @@ impl VideoFrame {
                 Ok(DynamicImage::ImageRgba8(img))
             }
             FrameFormat::BGR8 => {
-                // BGR を RGB に変換
                 let mut rgb_data = Vec::with_capacity(self.data.len());
                 for chunk in self.data.chunks(3) {
                     if chunk.len() == 3 {
@@ -190,16 +179,10 @@ impl VideoFrame {
             opencv::core::Scalar::all(0.0),
         )?;
 
-        // データをコピー
         let mat_data = mat.data_bytes_mut()?;
 
         if self.format == FrameFormat::RGB8 || self.format == FrameFormat::RGBA8 {
-            // RGB から BGR に変換
-            let channels = if self.format == FrameFormat::RGB8 {
-                3
-            } else {
-                4
-            };
+            let channels = if self.format == FrameFormat::RGB8 { 3 } else { 4 };
             for i in 0..(self.data.len() / channels) {
                 let base_idx = i * channels;
                 mat_data[base_idx] = self.data[base_idx + 2]; // B
@@ -222,7 +205,6 @@ impl VideoFrame {
         let resized =
             dynamic_img.resize_exact(new_width, new_height, image::imageops::FilterType::Lanczos3);
 
-        // リサイズされた画像から VideoFrame を作成
         match resized {
             DynamicImage::ImageRgb8(img) => Ok(Self::new(
                 img.into_raw(),
@@ -254,15 +236,15 @@ impl VideoFrame {
         }
     }
 
-    /// FFmpeg のピクセルフォーマットを変換
-    fn convert_ffmpeg_format(format: ffmpeg_next::format::Pixel) -> Result<FrameFormat> {
+    /// avio のピクセルフォーマットを変換
+    fn convert_avio_format(format: avio::PixelFormat) -> Result<FrameFormat> {
         match format {
-            ffmpeg_next::format::Pixel::RGB24 => Ok(FrameFormat::RGB8),
-            ffmpeg_next::format::Pixel::RGBA => Ok(FrameFormat::RGBA8),
-            ffmpeg_next::format::Pixel::BGR24 => Ok(FrameFormat::BGR8),
-            ffmpeg_next::format::Pixel::BGRA => Ok(FrameFormat::BGRA8),
-            ffmpeg_next::format::Pixel::YUV420P => Ok(FrameFormat::YUV420P),
-            ffmpeg_next::format::Pixel::GRAY8 => Ok(FrameFormat::Gray8),
+            avio::PixelFormat::Rgb24 => Ok(FrameFormat::RGB8),
+            avio::PixelFormat::Rgba => Ok(FrameFormat::RGBA8),
+            avio::PixelFormat::Bgr24 => Ok(FrameFormat::BGR8),
+            avio::PixelFormat::Bgra => Ok(FrameFormat::BGRA8),
+            avio::PixelFormat::Yuv420p => Ok(FrameFormat::YUV420P),
+            avio::PixelFormat::Gray8 => Ok(FrameFormat::Gray8),
             _ => Err(MediaError::UnsupportedCodec(format!(
                 "Unsupported pixel format: {:?}",
                 format

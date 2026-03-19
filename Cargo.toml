@@ -9,9 +9,8 @@ members = [
 resolver = "3"
 
 [workspace.dependencies]
-# FFmpeg関連
-ffmpeg-next = "7.1.0"
-ffmpeg-sys-next = "7.1.0"
+# メディアデコード
+avio = "0.6.0"
 
 # OpenCV
 opencv = { version = "0.94.4", default-features = false, features = ["videoio", "imgproc", "imgcodecs", "clang-runtime"] }
