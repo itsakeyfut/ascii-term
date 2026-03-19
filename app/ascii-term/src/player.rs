@@ -4,13 +4,13 @@ use std::time::{Duration, Instant};
 
 use anyhow::Result;
 use crossbeam_channel::{Receiver, Sender, unbounded};
-use media_core::PipelineBuilder;
+use codec::PipelineBuilder;
 use tokio::time;
 
 use crate::audio::AudioPlayer;
 use crate::renderer::{AsciiRenderer, RenderConfig, RenderedFrame};
 use crate::terminal::Terminal;
-use media_core::{MediaFile, MediaType};
+use codec::{MediaFile, MediaType};
 
 #[derive(Debug, Clone)]
 pub struct PlayerConfig {

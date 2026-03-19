@@ -3,7 +3,7 @@ use fast_image_resize as fr;
 use image::{DynamicImage, ImageBuffer};
 
 use crate::char_maps;
-use media_core::video::VideoFrame;
+use codec::video::VideoFrame;
 
 #[derive(Debug, Clone)]
 pub struct RenderConfig {

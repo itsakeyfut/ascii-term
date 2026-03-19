@@ -1,10 +1,10 @@
 [package]
-name = "terminal-player"
+name = "ascii-term"
 version = "0.1.0"
 edition = "2024"
 
 [dependencies]
-media-core = { path = "../media-core" }
+codec = { path = "../codec" }
 downloader = { path = "../downloader" }
 
 # ターミナル関連
