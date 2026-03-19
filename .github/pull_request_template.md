@@ -1,18 +1,21 @@
-## Description
+## Summary
 
-Please describe what this PR does.
+<!-- What this PR does and why, in 1–4 sentences. -->
 
-## Related Issue
+## Changes
 
-Closes #
+<!-- List of notable changes. For bug fixes, include root cause and fix.
+     For new features, include what was added. For tests, list what was covered. -->
 
-## Checklist
+## Related Issues
 
-- [ ] Code compiles correctly
-- [ ] Tests have been added or updated
-- [ ] Documentation has been updated (if needed)
-- [ ] I have run `cargo fmt` and `cargo clippy`
+<!-- Use the keyword that fits:
+     Closes #N  — feature implementation or task completion
+     Fixes #N   — bug fix
+     Resolves #N — general resolution (discussion, refactor, etc.) -->
 
-## Screenshots (if applicable)
+## Test Plan
 
-Attach screenshots or terminal output here.
+- [ ] `cargo test --all --all-features` passes
+- [ ] `cargo clippy --all --all-features -- -D warnings` passes
+- [ ] `cargo fmt --all -- --check` passes
