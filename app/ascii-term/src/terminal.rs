@@ -42,6 +42,10 @@ impl Terminal {
         // ターミナルの初期化
         self.init_terminal()?;
 
+        // 実際のターミナルサイズを取得してレンダラーに通知
+        let (width, height) = terminal::size()?;
+        self.send_command(PlayerCommand::Resize(width, height))?;
+
         // メインループ
         loop {
             // イベントをポーリング
@@ -106,33 +110,53 @@ impl Terminal {
 
     /// グレースケールフレームを表示
     fn display_grayscale_frame(&self, frame: &RenderedFrame) -> Result<()> {
-        execute!(stdout(), MoveTo(0, 0), Print(&frame.ascii_text))?;
-        stdout().flush()?;
+        let chars: Vec<char> = frame.ascii_text.chars().collect();
+        let width = frame.width as usize;
+        let height = frame.height as usize;
+        let mut out = stdout();
+
+        for y in 0..height {
+            let row_start = y * width;
+            let row_end = (row_start + width).min(chars.len());
+            let row: String = chars[row_start..row_end].iter().collect();
+            execute!(out, MoveTo(0, y as u16))?;
+            write!(out, "{}", row)?;
+        }
+
+        out.flush()?;
         Ok(())
     }
 
     /// カラーフレームを表示
     fn display_colored_frame(&self, frame: &RenderedFrame) -> Result<()> {
-        let mut colored_string = String::with_capacity(frame.ascii_text.len() * 20);
         let chars: Vec<char> = frame.ascii_text.chars().collect();
+        let width = frame.width as usize;
+        let height = frame.height as usize;
+        let mut out = stdout();
 
-        for (i, ch) in chars.iter().enumerate() {
-            // RGB色情報を取得
-            let rgb_index = i * 3;
-            if rgb_index + 2 < frame.rgb_data.len() {
-                let r = frame.rgb_data[rgb_index];
-                let g = frame.rgb_data[rgb_index + 1];
-                let b = frame.rgb_data[rgb_index + 2];
+        for y in 0..height {
+            let row_start = y * width;
+            let row_end = (row_start + width).min(chars.len());
 
-                let color = Color::Rgb { r, g, b };
-                colored_string.push_str(&format!("{}", ch.stylize().with(color)));
-            } else {
-                colored_string.push(*ch);
+            execute!(out, MoveTo(0, y as u16))?;
+
+            let mut row_string = String::with_capacity(width * 20);
+            for i in row_start..row_end {
+                let rgb_index = i * 3;
+                if rgb_index + 2 < frame.rgb_data.len() {
+                    let r = frame.rgb_data[rgb_index];
+                    let g = frame.rgb_data[rgb_index + 1];
+                    let b = frame.rgb_data[rgb_index + 2];
+                    let color = Color::Rgb { r, g, b };
+                    row_string.push_str(&format!("{}", chars[i].stylize().with(color)));
+                } else {
+                    row_string.push(chars[i]);
+                }
             }
+            write!(out, "{}", row_string)?;
         }
 
-        execute!(stdout(), MoveTo(0, 0), Print(colored_string))?;
-        stdout().flush()?;
+        out.flush()?;
         Ok(())
     }
 
