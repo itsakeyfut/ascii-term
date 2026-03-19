@@ -110,8 +110,12 @@ fn setup_windows(skip_verify: bool) -> Result<()> {
     if !opencv_dir.join("build").exists() {
         println!("{} OpenCV not found, installing...", "→".blue());
 
-        run_powershell("if (!(Test-Path D:\\libs)) { New-Item -ItemType Directory -Path D:\\libs }")?;
-        run_powershell("if (!(Test-Path D:\\libs\\tmp)) { New-Item -ItemType Directory -Path D:\\libs\\tmp }")?;
+        run_powershell(
+            "if (!(Test-Path D:\\libs)) { New-Item -ItemType Directory -Path D:\\libs }",
+        )?;
+        run_powershell(
+            "if (!(Test-Path D:\\libs\\tmp)) { New-Item -ItemType Directory -Path D:\\libs\\tmp }",
+        )?;
 
         println!(
             "{} Downloading OpenCV (this may take a while)...",
@@ -251,10 +255,17 @@ fn setup_ffmpeg_windows() -> Result<()> {
     } else {
         println!("{} Installing vcpkg to D:\\libs\\vcpkg...", "→".blue());
 
-        run_powershell("if (!(Test-Path D:\\libs)) { New-Item -ItemType Directory -Path D:\\libs }")?;
+        run_powershell(
+            "if (!(Test-Path D:\\libs)) { New-Item -ItemType Directory -Path D:\\libs }",
+        )?;
 
         let clone = Command::new("git")
-            .args(["clone", "--depth=1", "https://github.com/microsoft/vcpkg.git", "D:\\libs\\vcpkg"])
+            .args([
+                "clone",
+                "--depth=1",
+                "https://github.com/microsoft/vcpkg.git",
+                "D:\\libs\\vcpkg",
+            ])
             .stdout(Stdio::inherit())
             .stderr(Stdio::inherit())
             .status();
@@ -315,7 +326,10 @@ fn setup_ffmpeg_windows() -> Result<()> {
         "$path = [Environment]::GetEnvironmentVariable('Path', 'User'); if ($path -notlike '*D:\\libs\\vcpkg\\installed\\x64-windows\\bin*') { [Environment]::SetEnvironmentVariable('Path', $path + ';D:\\libs\\vcpkg\\installed\\x64-windows\\bin', 'User') }",
     )?;
     println!("{} Environment variables set", "✓".green());
-    println!("   {} FFMPEG_DIR=D:\\libs\\vcpkg\\installed\\x64-windows", "→".blue());
+    println!(
+        "   {} FFMPEG_DIR=D:\\libs\\vcpkg\\installed\\x64-windows",
+        "→".blue()
+    );
 
     Ok(())
 }
@@ -430,9 +444,15 @@ fn verify_windows_setup() -> Result<()> {
     // FFmpeg (via vcpkg)
     let ffmpeg_lib = Path::new("D:\\libs\\vcpkg\\installed\\x64-windows\\lib\\avcodec.lib");
     if ffmpeg_lib.exists() {
-        println!("{} FFmpeg OK (D:\\libs\\vcpkg\\installed\\x64-windows)", "✓".green());
+        println!(
+            "{} FFmpeg OK (D:\\libs\\vcpkg\\installed\\x64-windows)",
+            "✓".green()
+        );
     } else {
-        println!("{} FFmpeg not found - run `cargo x setup` to install", "✗".red());
+        println!(
+            "{} FFmpeg not found - run `cargo x setup` to install",
+            "✗".red()
+        );
     }
 
     // OpenCV
@@ -499,27 +519,35 @@ fn setup_linux(skip_verify: bool) -> Result<()> {
         println!("{} Installing build tools...", "→".blue());
         let mut cmd = Command::new("sudo");
         cmd.args([
-            "apt-get", "install", "-y",
-            "cmake", "pkg-config", "clang", "libclang-dev",
+            "apt-get",
+            "install",
+            "-y",
+            "cmake",
+            "pkg-config",
+            "clang",
+            "libclang-dev",
         ]);
         execute_command(&mut cmd)?;
 
         println!("{} Installing FFmpeg dev libraries...", "→".blue());
         let mut cmd = Command::new("sudo");
         cmd.args([
-            "apt-get", "install", "-y",
-            "libavcodec-dev", "libavformat-dev", "libavutil-dev",
-            "libavdevice-dev", "libavfilter-dev",
-            "libswscale-dev", "libswresample-dev",
+            "apt-get",
+            "install",
+            "-y",
+            "libavcodec-dev",
+            "libavformat-dev",
+            "libavutil-dev",
+            "libavdevice-dev",
+            "libavfilter-dev",
+            "libswscale-dev",
+            "libswresample-dev",
         ]);
         execute_command(&mut cmd)?;
 
         println!("{} Installing OpenCV...", "→".blue());
         let mut cmd = Command::new("sudo");
-        cmd.args([
-            "apt-get", "install", "-y",
-            "libopencv-dev",
-        ]);
+        cmd.args(["apt-get", "install", "-y", "libopencv-dev"]);
         execute_command(&mut cmd)?;
 
         println!("{} Installing audio libraries...", "→".blue());
@@ -565,9 +593,7 @@ fn setup_macos(skip_verify: bool) -> Result<()> {
 
     // brew's LLVM is not in PATH by default; set LIBCLANG_PATH so opencv-rs bindgen works
     println!("{} Configuring LLVM (brew)...", "→".blue());
-    let llvm_prefix_output = Command::new("brew")
-        .args(["--prefix", "llvm"])
-        .output();
+    let llvm_prefix_output = Command::new("brew").args(["--prefix", "llvm"]).output();
     if let Ok(out) = llvm_prefix_output {
         if out.status.success() {
             let prefix = String::from_utf8_lossy(&out.stdout).trim().to_string();

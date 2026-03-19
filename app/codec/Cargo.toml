@@ -4,9 +4,8 @@ version = "0.1.0"
 edition = "2024"
 
 [dependencies]
-# FFmpeg関連
-ffmpeg-next = { workspace = true }
-ffmpeg-sys-next = { workspace = true }
+# メディアデコード
+avio = { workspace = true }
 
 # OpenCV
 opencv = { workspace = true }

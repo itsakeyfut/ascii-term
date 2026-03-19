@@ -4,8 +4,11 @@ pub type Result<T> = std::result::Result<T, MediaError>;
 
 #[derive(Error, Debug)]
 pub enum MediaError {
-    #[error("FFmpeg error: {0}")]
-    Ffmpeg(#[from] ffmpeg_next::Error),
+    #[error("Decode error: {0}")]
+    Decode(#[from] avio::DecodeError),
+
+    #[error("Probe error: {0}")]
+    Probe(#[from] avio::ProbeError),
 
     #[error("OpenCV error: {0}")]
     OpenCV(#[from] opencv::Error),

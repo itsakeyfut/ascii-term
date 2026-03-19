@@ -1,7 +1,6 @@
 use std::io::Write;
 use std::path::Path;
 
-use reqwest;
 use tempfile::NamedTempFile;
 use url::Url;
 
@@ -27,57 +26,55 @@ impl UrlValidator {
 
     /// Check if URL is a YouTube URL
     pub fn is_youtube_url(url: &str) -> bool {
-        if let Ok(parsed) = Url::parse(url) {
-            if let Some(domain) = parsed.domain() {
-                return domain.contains("youtube.com")
-                    || domain.contains("youtu.be")
-                    || domain.contains("youtube-nocookie.com");
-            }
+        if let Ok(parsed) = Url::parse(url)
+            && let Some(domain) = parsed.domain()
+        {
+            return domain.contains("youtube.com")
+                || domain.contains("youtu.be")
+                || domain.contains("youtube-nocookie.com");
         }
         false
     }
 
     /// Check if URL is a video streaming site
     pub fn is_streaming_site(url: &str) -> bool {
-        if let Ok(parsed) = Url::parse(url) {
-            if let Some(domain) = parsed.domain() {
-                let streaming_domains = [
-                    "youtube.com",
-                    "youtu.be",
-                    "twitch.tv",
-                    "tiktok.com",
-                    "facebook.com",
-                    "instagram.com",
-                    "x.com",
-                    "reddit.com",
-                    "dailymotion.com",
-                ];
+        if let Ok(parsed) = Url::parse(url)
+            && let Some(domain) = parsed.domain()
+        {
+            let streaming_domains = [
+                "youtube.com",
+                "youtu.be",
+                "twitch.tv",
+                "tiktok.com",
+                "facebook.com",
+                "instagram.com",
+                "x.com",
+                "reddit.com",
+                "dailymotion.com",
+            ];
 
-                return streaming_domains.iter().any(|&d| domain.contains(d));
-            }
+            return streaming_domains.iter().any(|&d| domain.contains(d));
         }
         false
     }
 
     /// Check if URL is a direct media file link
     pub fn is_direct_media_url(url: &str) -> bool {
-        if let Ok(parsed) = Url::parse(url) {
-            if let Some(path) = parsed.path_segments() {
-                if let Some(last_segment) = path.last() {
-                    let media_extensions = [
-                        // Video formats
-                        "mp4", "avi", "mkv", "mov", "wmv", "flv", "webm", "m4v", "3gp", "ogv", "ts",
-                        "mts", "m2ts",
-                        // Audio formats
-                        "mp3", "wav", "flac", "aac", "ogg", "wma", "m4a", "opus",
-                        // Image formats
-                        "jpg", "jpeg", "png", "gif", "bmp", "webp", "tiff", "svg",
-                    ];
+        if let Ok(parsed) = Url::parse(url)
+            && let Some(mut path) = parsed.path_segments()
+            && let Some(last_segment) = path.next_back()
+        {
+            let media_extensions = [
+                // Video formats
+                "mp4", "avi", "mkv", "mov", "wmv", "flv", "webm", "m4v", "3gp", "ogv", "ts", "mts",
+                "m2ts", // Audio formats
+                "mp3", "wav", "flac", "aac", "ogg", "wma", "m4a", "opus",
+                // Image formats
+                "jpg", "jpeg", "png", "gif", "bmp", "webp", "tiff", "svg",
+            ];
 
-                    if let Some(ext) = last_segment.split('.').last() {
-                        return media_extensions.contains(&ext.to_lowercase().as_str());
-                    }
-                }
+            if let Some(ext) = last_segment.split('.').next_back() {
+                return media_extensions.contains(&ext.to_lowercase().as_str());
             }
         }
         false
@@ -103,14 +100,14 @@ impl FileDownloader {
             .user_agent("Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36")
             .timeout(std::time::Duration::from_secs(30))
             .build()
-            .map_err(|e| DownloaderError::Network(e))?;
+            .map_err(DownloaderError::Network)?;
 
         // Download file
         let response = client
             .get(url)
             .send()
             .await
-            .map_err(|e| DownloaderError::Network(e))?;
+            .map_err(DownloaderError::Network)?;
 
         if !response.status().is_success() {
             return Err(DownloaderError::Download(format!(
@@ -120,18 +117,13 @@ impl FileDownloader {
             )));
         }
 
-        let mut temp_file = NamedTempFile::new().map_err(|e| DownloaderError::Io(e))?;
+        let mut temp_file = NamedTempFile::new().map_err(DownloaderError::Io)?;
 
-        let content = response
-            .bytes()
-            .await
-            .map_err(|e| DownloaderError::Network(e))?;
+        let content = response.bytes().await.map_err(DownloaderError::Network)?;
 
-        temp_file
-            .write_all(&content)
-            .map_err(|e| DownloaderError::Io(e))?;
+        temp_file.write_all(&content).map_err(DownloaderError::Io)?;
 
-        temp_file.flush().map_err(|e| DownloaderError::Io(e))?;
+        temp_file.flush().map_err(DownloaderError::Io)?;
 
         Ok(temp_file)
     }
@@ -140,7 +132,7 @@ impl FileDownloader {
     pub async fn download_to_path<P: AsRef<Path>>(url: &str, path: P) -> Result<()> {
         let temp_file = Self::download_to_temp(url).await?;
 
-        std::fs::copy(temp_file.path(), &path).map_err(|e| DownloaderError::Io(e))?;
+        std::fs::copy(temp_file.path(), &path).map_err(DownloaderError::Io)?;
 
         Ok(())
     }
@@ -164,13 +156,13 @@ impl FileDownloader {
             .user_agent("Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36")
             .timeout(std::time::Duration::from_secs(60))
             .build()
-            .map_err(|e| DownloaderError::Network(e))?;
+            .map_err(DownloaderError::Network)?;
 
         let response = client
             .get(url)
             .send()
             .await
-            .map_err(|e| DownloaderError::Network(e))?;
+            .map_err(DownloaderError::Network)?;
 
         if !response.status().is_success() {
             return Err(DownloaderError::Download(format!(
@@ -181,23 +173,21 @@ impl FileDownloader {
         }
 
         let total_size = response.content_length();
-        let mut temp_file = NamedTempFile::new().map_err(|e| DownloaderError::Io(e))?;
+        let mut temp_file = NamedTempFile::new().map_err(DownloaderError::Io)?;
 
         let mut downloaded = 0u64;
         let mut stream = response.bytes_stream();
 
         use futures_util::StreamExt;
         while let Some(chunk) = stream.next().await {
-            let chunk = chunk.map_err(|e| DownloaderError::Network(e))?;
-            temp_file
-                .write_all(&chunk)
-                .map_err(|e| DownloaderError::Io(e))?;
+            let chunk = chunk.map_err(DownloaderError::Network)?;
+            temp_file.write_all(&chunk).map_err(DownloaderError::Io)?;
 
             downloaded += chunk.len() as u64;
             progress_callback(downloaded, total_size);
         }
 
-        temp_file.flush().map_err(|e| DownloaderError::Io(e))?;
+        temp_file.flush().map_err(DownloaderError::Io)?;
 
         Ok(temp_file)
     }
@@ -215,13 +205,13 @@ impl FileDownloader {
             .user_agent("Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36")
             .timeout(std::time::Duration::from_secs(10))
             .build()
-            .map_err(|e| DownloaderError::Network(e))?;
+            .map_err(DownloaderError::Network)?;
 
         let response = client
             .head(url)
             .send()
             .await
-            .map_err(|e| DownloaderError::Network(e))?;
+            .map_err(DownloaderError::Network)?;
 
         if response.status().is_success() {
             Ok(response.content_length())
@@ -241,15 +231,13 @@ pub struct FileNameGenerator;
 impl FileNameGenerator {
     /// Generate appropriate filename from URL
     pub fn generate_from_url(url: &str, default_extension: Option<&str>) -> String {
-        if let Ok(parsed_url) = Url::parse(url) {
-            // Extract filename from URL path
-            if let Some(segments) = parsed_url.path_segments() {
-                if let Some(filename) = segments.last() {
-                    if !filename.is_empty() && filename.contains('.') {
-                        return Self::sanitize_filename(filename);
-                    }
-                }
-            }
+        if let Ok(parsed_url) = Url::parse(url)
+            && let Some(mut segments) = parsed_url.path_segments()
+            && let Some(filename) = segments.next_back()
+            && !filename.is_empty()
+            && filename.contains('.')
+        {
+            return Self::sanitize_filename(filename);
         }
 
         // If filename cannot be extracted from URL
@@ -323,14 +311,12 @@ impl MediaTypeDetector {
 
     /// Detect media type from file extension
     fn detect_from_extension(url: &str) -> MediaType {
-        if let Ok(parsed) = Url::parse(url) {
-            if let Some(path) = parsed.path_segments() {
-                if let Some(last_segment) = path.last() {
-                    if let Some(ext) = last_segment.split('.').last() {
-                        return Self::classify_extension(ext);
-                    }
-                }
-            }
+        if let Ok(parsed) = Url::parse(url)
+            && let Some(mut path) = parsed.path_segments()
+            && let Some(last_segment) = path.next_back()
+            && let Some(ext) = last_segment.split('.').next_back()
+        {
+            return Self::classify_extension(ext);
         }
 
         MediaType::Unknown

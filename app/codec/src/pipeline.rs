@@ -28,7 +28,6 @@ impl Default for PipelineConfig {
 pub struct Pipeline {
     config: PipelineConfig,
     decoder: Option<VideoDecoder>,
-    media_file: Option<MediaFile>,
     frame_buffer: VecDeque<VideoFrame>,
     is_running: Arc<AtomicBool>,
     is_eof: bool,
@@ -40,7 +39,6 @@ impl Pipeline {
         Self {
             config,
             decoder: None,
-            media_file: None,
             frame_buffer: VecDeque::new(),
             is_running: Arc::new(AtomicBool::new(false)),
             is_eof: false,
@@ -50,9 +48,10 @@ impl Pipeline {
     /// メディアファイルを設定
     pub fn set_media(&mut self, media_file: MediaFile) -> Result<()> {
         if media_file.info.has_video {
-            self.decoder = Some(VideoDecoder::new(&media_file)?);
+            let width = media_file.info.width.unwrap_or(0);
+            let height = media_file.info.height.unwrap_or(0);
+            self.decoder = Some(VideoDecoder::new(&media_file.path, width, height)?);
         }
-        self.media_file = Some(media_file);
         self.is_eof = false;
         Ok(())
     }
@@ -69,77 +68,43 @@ impl Pipeline {
     pub fn stop(&mut self) -> Result<()> {
         self.is_running.store(false, Ordering::Relaxed);
         self.frame_buffer.clear();
+        self.decoder = None;
         Ok(())
     }
 
     /// 次のフレームを取得（実際のデコード処理を含む）
     pub fn next_frame(&mut self) -> Result<Option<VideoFrame>> {
-        // バッファが空でない場合は、バッファから取得
         if let Some(frame) = self.frame_buffer.pop_front() {
             return Ok(Some(frame));
         }
 
-        // EOFに達している場合は None を返す
         if self.is_eof {
             return Ok(None);
         }
 
-        // バッファが空の場合は、新しいフレームをデコードしてバッファに追加
         self.decode_and_buffer_frames()?;
 
-        // バッファから取得
         Ok(self.frame_buffer.pop_front())
     }
 
     /// フレームをデコードしてバッファに追加
     fn decode_and_buffer_frames(&mut self) -> Result<()> {
-        let media_file = self
-            .media_file
-            .as_mut()
-            .ok_or_else(|| MediaError::Pipeline("No media file set".to_string()))?;
-
         let decoder = self
             .decoder
             .as_mut()
             .ok_or_else(|| MediaError::Pipeline("No decoder available".to_string()))?;
 
-        // 複数のパケットを処理してバッファを満たす
         while self.frame_buffer.len() < self.config.buffer_size && !self.is_eof {
-            match media_file.read_packet() {
-                Ok((_stream, packet)) => {
-                    // デコードを試行
-                    match decoder.decode_next_frame(&packet) {
-                        Ok(Some(frame)) => {
-                            self.frame_buffer.push_back(frame);
-                        }
-                        Ok(None) => {
-                            // フレームが得られなかった（まだデータが必要）
-                            continue;
-                        }
-                        Err(e) => {
-                            eprintln!("Frame decode error: {}", e);
-                            continue;
-                        }
-                    }
+            match decoder.decode_one() {
+                Ok(Some(frame)) => {
+                    self.frame_buffer.push_back(frame);
                 }
-                Err(MediaError::Video(ref msg)) if msg == "End of stream" => {
-                    // ストリーム終了
+                Ok(None) => {
                     self.is_eof = true;
-
-                    // デコーダーから残りのフレームを取得
-                    match decoder.flush() {
-                        Ok(remaining_frames) => {
-                            for frame in remaining_frames {
-                                self.frame_buffer.push_back(frame);
-                            }
-                        }
-                        Err(e) => {
-                            eprintln!("Error flushing decoder: {}", e);
-                        }
-                    }
                     break;
                 }
                 Err(e) => {
+                    eprintln!("Frame decode error: {}", e);
                     return Err(e);
                 }
             }

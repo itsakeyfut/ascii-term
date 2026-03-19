@@ -75,6 +75,7 @@ pub fn get_char_map_name(index: u8) -> &'static str {
 }
 
 /// Get the total number of character maps
+#[allow(dead_code)]
 pub fn char_map_count() -> usize {
     CHAR_MAPS.len()
 }

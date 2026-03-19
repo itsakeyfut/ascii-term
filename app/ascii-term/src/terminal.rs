@@ -45,10 +45,8 @@ impl Terminal {
         // メインループ
         loop {
             // イベントをポーリング
-            if event::poll(Duration::from_millis(16))? {
-                if self.handle_input_event()? {
-                    break; // 終了
-                }
+            if event::poll(Duration::from_millis(16))? && self.handle_input_event()? {
+                break; // 終了
             }
 
             // フレームの受信と描画
@@ -106,33 +104,53 @@ impl Terminal {
 
     /// グレースケールフレームを表示
     fn display_grayscale_frame(&self, frame: &RenderedFrame) -> Result<()> {
-        execute!(stdout(), MoveTo(0, 0), Print(&frame.ascii_text))?;
-        stdout().flush()?;
+        let chars: Vec<char> = frame.ascii_text.chars().collect();
+        let width = frame.width as usize;
+        let height = frame.height as usize;
+        let mut out = stdout();
+
+        for y in 0..height {
+            let row_start = y * width;
+            let row_end = (row_start + width).min(chars.len());
+            let row: String = chars[row_start..row_end].iter().collect();
+            execute!(out, MoveTo(0, y as u16))?;
+            write!(out, "{}", row)?;
+        }
+
+        out.flush()?;
         Ok(())
     }
 
     /// カラーフレームを表示
     fn display_colored_frame(&self, frame: &RenderedFrame) -> Result<()> {
-        let mut colored_string = String::with_capacity(frame.ascii_text.len() * 20);
         let chars: Vec<char> = frame.ascii_text.chars().collect();
+        let width = frame.width as usize;
+        let height = frame.height as usize;
+        let mut out = stdout();
 
-        for (i, ch) in chars.iter().enumerate() {
-            // RGB色情報を取得
-            let rgb_index = i * 3;
-            if rgb_index + 2 < frame.rgb_data.len() {
-                let r = frame.rgb_data[rgb_index];
-                let g = frame.rgb_data[rgb_index + 1];
-                let b = frame.rgb_data[rgb_index + 2];
+        for y in 0..height {
+            let row_start = y * width;
+            let row_end = (row_start + width).min(chars.len());
 
-                let color = Color::Rgb { r, g, b };
-                colored_string.push_str(&format!("{}", ch.stylize().with(color)));
-            } else {
-                colored_string.push(*ch);
+            execute!(out, MoveTo(0, y as u16))?;
+
+            let mut row_string = String::with_capacity(width * 20);
+            for (j, ch) in chars[row_start..row_end].iter().enumerate() {
+                let rgb_index = (row_start + j) * 3;
+                if rgb_index + 2 < frame.rgb_data.len() {
+                    let r = frame.rgb_data[rgb_index];
+                    let g = frame.rgb_data[rgb_index + 1];
+                    let b = frame.rgb_data[rgb_index + 2];
+                    let color = Color::Rgb { r, g, b };
+                    row_string.push_str(&format!("{}", ch.stylize().with(color)));
+                } else {
+                    row_string.push(*ch);
+                }
             }
+            write!(out, "{}", row_string)?;
         }
 
-        execute!(stdout(), MoveTo(0, 0), Print(colored_string))?;
-        stdout().flush()?;
+        out.flush()?;
         Ok(())
     }
 
@@ -190,9 +208,12 @@ impl Terminal {
                 }
             }
 
-            Event::Resize(width, height) => {
-                self.send_command(PlayerCommand::Resize(width, height))?;
+            Event::Resize(_, _) => {
+                // 解像度は起動時に固定。画面クリアして最終フレームを再描画するだけ
                 self.clear_screen()?;
+                if let Some(ref frame) = self.last_frame.clone() {
+                    self.display_frame(frame)?;
+                }
             }
 
             _ => {}

@@ -49,6 +49,7 @@ impl AsciiRenderer {
         }
     }
 
+    #[allow(dead_code)]
     pub fn update_config(&mut self, config: RenderConfig) {
         self.config = config;
     }

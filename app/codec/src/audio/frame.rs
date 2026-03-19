@@ -38,14 +38,14 @@ impl AudioFormat {
         matches!(self, AudioFormat::F32LE | AudioFormat::F64LE)
     }
 
-    /// FFmpeg のサンプル形式から変換
-    pub fn from_ffmpeg_format(format: ffmpeg_next::format::Sample) -> Result<Self> {
+    /// avio のサンプル形式から変換
+    pub fn from_avio_format(format: avio::SampleFormat) -> Result<Self> {
         match format {
-            ffmpeg_next::format::Sample::U8(_) => Ok(AudioFormat::U8),
-            ffmpeg_next::format::Sample::I16(_) => Ok(AudioFormat::S16LE),
-            ffmpeg_next::format::Sample::I32(_) => Ok(AudioFormat::S32LE),
-            ffmpeg_next::format::Sample::F32(_) => Ok(AudioFormat::F32LE),
-            ffmpeg_next::format::Sample::F64(_) => Ok(AudioFormat::F64LE),
+            avio::SampleFormat::U8 | avio::SampleFormat::U8p => Ok(AudioFormat::U8),
+            avio::SampleFormat::I16 | avio::SampleFormat::I16p => Ok(AudioFormat::S16LE),
+            avio::SampleFormat::I32 | avio::SampleFormat::I32p => Ok(AudioFormat::S32LE),
+            avio::SampleFormat::F32 | avio::SampleFormat::F32p => Ok(AudioFormat::F32LE),
+            avio::SampleFormat::F64 | avio::SampleFormat::F64p => Ok(AudioFormat::F64LE),
             _ => Err(MediaError::UnsupportedCodec(format!(
                 "Unsupported audio format: {:?}",
                 format
@@ -77,6 +77,7 @@ pub struct AudioFrame {
 
 impl AudioFrame {
     /// 新しいフレームを作成
+    #[allow(clippy::too_many_arguments)]
     pub fn new(
         data: Vec<u8>,
         samples: usize,
@@ -99,31 +100,35 @@ impl AudioFrame {
         }
     }
 
-    /// FFmpeg のオーディオフレームから作成
-    pub fn from_ffmpeg_frame(
-        frame: &ffmpeg_next::frame::Audio,
-        timestamp: Duration,
-        pts: i64,
-    ) -> Result<Self> {
+    /// avio の AudioFrame から作成
+    pub fn from_avio_frame(frame: &avio::AudioFrame) -> Result<Self> {
         let samples = frame.samples();
         let channels = frame.channels() as u16;
-        let sample_rate = frame.rate();
-        let format = AudioFormat::from_ffmpeg_format(frame.format())?;
-        let is_planar = frame.is_planar();
+        let sample_rate = frame.sample_rate();
+        let format = AudioFormat::from_avio_format(frame.format())?;
+        let timestamp = frame.timestamp().as_duration();
+        let pts = frame.timestamp().pts();
 
-        // フレームデータをコピー
-        let mut data = Vec::new();
-        if is_planar {
-            // プレーナー形式：各チャンネルが別々のプレーンに格納
-            for plane in 0..frame.planes() {
-                let plane_data = frame.data(plane);
-                data.extend_from_slice(plane_data);
+        let is_planar = matches!(
+            frame.format(),
+            avio::SampleFormat::U8p
+                | avio::SampleFormat::I16p
+                | avio::SampleFormat::I32p
+                | avio::SampleFormat::F32p
+                | avio::SampleFormat::F64p
+        );
+
+        let data = if is_planar {
+            let mut all_data = Vec::new();
+            for i in 0..channels as usize {
+                if let Some(plane) = frame.plane(i) {
+                    all_data.extend_from_slice(plane);
+                }
             }
+            all_data
         } else {
-            // インターリーブ形式：全チャンネルが混在
-            let plane_data = frame.data(0);
-            data.extend_from_slice(plane_data);
-        }
+            frame.data().map(|d| d.to_vec()).unwrap_or_default()
+        };
 
         Ok(Self::new(
             data,
@@ -156,7 +161,6 @@ impl AudioFrame {
         let bytes_per_sample = self.format.bytes_per_sample();
         let mut interleaved_data = Vec::with_capacity(self.data.len());
 
-        // プレーナーからインターリーブに変換
         for sample_idx in 0..self.samples {
             for channel in 0..self.channels {
                 let plane_offset = channel as usize * self.samples * bytes_per_sample;
@@ -178,20 +182,19 @@ impl AudioFrame {
             self.format,
             self.timestamp,
             self.pts,
-            false, // インターリーブ形式
+            false,
         ))
     }
 
     /// プレーナー形式に変換
     pub fn to_planar(&self) -> Result<AudioFrame> {
-        if !self.is_planar {
+        if self.is_planar {
             return Ok(self.clone());
         }
 
         let bytes_per_sample = self.format.bytes_per_sample();
         let mut planar_data = Vec::with_capacity(self.data.len());
 
-        // インターリーブからプレーナーに変換
         for channel in 0..self.channels {
             for sample_idx in 0..self.samples {
                 let interleaved_offset =
@@ -213,7 +216,7 @@ impl AudioFrame {
             self.format,
             self.timestamp,
             self.pts,
-            true, // プレーナー形式
+            true,
         ))
     }
 
@@ -223,7 +226,6 @@ impl AudioFrame {
         let mut samples = Vec::with_capacity(total_samples);
 
         if self.is_planar {
-            // プレーナー形式の処理
             let bytes_per_sample = match self.format {
                 AudioFormat::U8 => 1,
                 AudioFormat::S16LE => 2,
@@ -238,7 +240,6 @@ impl AudioFrame {
 
             let plane_size = self.samples * bytes_per_sample;
 
-            // インターリーブ形式に変換
             for sample_idx in 0..self.samples {
                 for channel in 0..self.channels {
                     let plane_offset = channel as usize * plane_size;
@@ -275,7 +276,6 @@ impl AudioFrame {
                 }
             }
         } else {
-            // インターリーブ形式の処理
             match self.format {
                 AudioFormat::U8 => {
                     for &byte in &self.data {
@@ -321,7 +321,6 @@ impl AudioFrame {
         let mut mono_samples = Vec::with_capacity(self.samples);
 
         if self.is_planar {
-            // プレーナー形式の場合
             for sample_idx in 0..self.samples {
                 let mut sum = 0.0f32;
                 for channel in 0..self.channels {
@@ -331,7 +330,6 @@ impl AudioFrame {
                 mono_samples.push(sum / self.channels as f32);
             }
         } else {
-            // インターリーブ形式の場合
             for sample_idx in 0..self.samples {
                 let mut sum = 0.0f32;
                 for channel in 0..self.channels {
@@ -342,7 +340,6 @@ impl AudioFrame {
             }
         }
 
-        // f32 データをバイトデータに変換
         let mut mono_data = Vec::with_capacity(mono_samples.len() * 4);
         for sample in mono_samples {
             mono_data.extend_from_slice(&sample.to_le_bytes());
@@ -351,7 +348,7 @@ impl AudioFrame {
         Ok(AudioFrame::new(
             mono_data,
             self.samples,
-            1, // モノラル
+            1,
             self.sample_rate,
             AudioFormat::F32LE,
             self.timestamp,

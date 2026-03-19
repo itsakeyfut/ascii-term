@@ -1,3 +1,5 @@
+#![allow(dead_code)]
+
 mod errors;
 mod utils;
 mod youtube;

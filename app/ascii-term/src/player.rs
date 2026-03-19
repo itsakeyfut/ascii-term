@@ -3,8 +3,9 @@ use std::sync::atomic::{AtomicBool, Ordering};
 use std::time::{Duration, Instant};
 
 use anyhow::Result;
-use crossbeam_channel::{Receiver, Sender, unbounded};
 use codec::PipelineBuilder;
+use codec::video::VideoFrame;
+use crossbeam_channel::{Receiver, Sender, unbounded};
 use tokio::time;
 
 use crate::audio::AudioPlayer;
@@ -19,6 +20,7 @@ pub struct PlayerConfig {
     pub char_map_index: u8,
     pub grayscale: bool,
     pub width_modifier: u32,
+    #[allow(dead_code)]
     pub allow_frame_skip: bool,
     pub add_newlines: bool,
     pub enable_audio: bool,
@@ -40,6 +42,7 @@ impl Default for PlayerConfig {
 }
 
 #[derive(Debug, Clone)]
+#[allow(dead_code)]
 pub enum PlayerCommand {
     Play,
     Pause,
@@ -56,6 +59,7 @@ pub enum PlayerCommand {
 }
 
 #[derive(Debug, Clone, PartialEq)]
+#[allow(dead_code)]
 pub enum PlayerState {
     Playing,
     Paused,
@@ -85,9 +89,11 @@ impl Player {
         let (command_tx, command_rx) = unbounded();
         let (frame_tx, frame_rx) = unbounded();
 
+        let (term_width, term_height) = crossterm::terminal::size().unwrap_or((80, 24));
+        println!("Detected terminal size: {}x{}", term_width, term_height);
         let render_config = RenderConfig {
-            target_width: 80,
-            target_height: 24,
+            target_width: (term_width as u32).saturating_div(config.width_modifier.max(1)),
+            target_height: term_height as u32,
             char_map_index: config.char_map_index,
             grayscale: config.grayscale,
             add_newlines: config.add_newlines,
@@ -145,7 +151,6 @@ impl Player {
 
     async fn play_video(&mut self) -> Result<()> {
         let fps = self.config.fps.or(self.media_file.info.fps).unwrap_or(30.0);
-
         let frame_duration = Duration::from_secs_f64(1.0 / fps);
 
         let video_media_file = MediaFile::open(&self.media_file.path)?;
@@ -182,10 +187,11 @@ impl Player {
             false
         };
 
-        let mut last_frame_time = Instant::now();
         let mut frame_count = 0u64;
         let playback_start_time = Instant::now();
         let mut video_finished = false;
+        let mut pending_frame: Option<VideoFrame> = None;
+        let mut pts_offset: Option<Duration> = None;
 
         loop {
             if self.stop_signal.load(Ordering::Relaxed) {
@@ -198,39 +204,19 @@ impl Player {
             }
 
             if self.state.load(Ordering::Relaxed) && !video_finished {
-                let now = Instant::now();
-                let elapsed = now.duration_since(last_frame_time);
-
-                if elapsed >= frame_duration || self.config.allow_frame_skip {
+                // Fetch next frame if none pending
+                if pending_frame.is_none() {
                     match pipeline.next_frame()? {
-                        Some(video_frame) => {
-                            let rendered_frame = self.renderer.render_video_frame(&video_frame)?;
-
-                            if self.frame_tx.send(rendered_frame).is_err() {
-                                println!("Frame receiver closed");
-                                break;
+                        Some(frame) => {
+                            // Record PTS of first frame as offset (some files start at non-zero PTS)
+                            if pts_offset.is_none() {
+                                pts_offset = Some(frame.timestamp);
                             }
-
-                            frame_count += 1;
-                            last_frame_time = now;
-
-                            if self.config.allow_frame_skip && elapsed > frame_duration * 2 {
-                                println!("Frame skip detected at frame {}", frame_count);
-                            }
-
-                            // if frame_count % 900 == 0 {
-                            //     let playback_time = playback_start_time.elapsed().as_secs_f64();
-                            //     let expected_time = frame_count as f64 / fps;
-                            //     println!(
-                            //         "Video frames: {}, playback: {:.1}s, expected: {:.1}s",
-                            //         frame_count, playback_time, expected_time
-                            //     );
-                            // }
+                            pending_frame = Some(frame);
                         }
                         None => {
                             if pipeline.is_finished() {
                                 println!("Video stream finished");
-                                video_finished = true;
 
                                 if self.config.loop_playback {
                                     println!("Restarting video loop...");
@@ -240,6 +226,9 @@ impl Player {
                                     pipeline.set_media(loop_media_file)?;
                                     pipeline.start()?;
 
+                                    frame_count = 0;
+                                    pending_frame = None;
+                                    pts_offset = None;
                                     video_finished = false;
                                     println!("Video loop restarted");
                                 } else {
@@ -249,28 +238,52 @@ impl Player {
                             } else {
                                 time::sleep(Duration::from_millis(10)).await;
                             }
+                            continue;
                         }
                     }
-                } else {
-                    time::sleep(Duration::from_millis(1)).await;
                 }
-            } else {
-                if video_finished && audio_started {
-                    if let Some(audio_player) = &self.audio_player {
-                        if audio_player.is_playing() {
-                            println!("Waiting for audio to finish...");
-                            time::sleep(Duration::from_millis(1000)).await;
-                            continue;
-                        } else {
-                            println!("Audio finished");
-                            break;
+
+                if let Some(ref frame) = pending_frame {
+                    let offset = pts_offset.unwrap_or(Duration::ZERO);
+                    let frame_pts = frame.timestamp.saturating_sub(offset);
+                    let elapsed = playback_start_time.elapsed();
+
+                    if elapsed >= frame_pts {
+                        let frame = pending_frame.take().unwrap();
+                        let lag = elapsed.saturating_sub(frame_pts);
+
+                        // Skip frame if more than 2 frame durations behind to catch up to audio
+                        if lag <= frame_duration * 2 {
+                            let rendered_frame = self.renderer.render_video_frame(&frame)?;
+
+                            if self.frame_tx.send(rendered_frame).is_err() {
+                                println!("Frame receiver closed");
+                                break;
+                            }
                         }
+                        // else: drop this frame silently, fetch the next one immediately
+
+                        frame_count += 1;
                     } else {
+                        let wait = frame_pts - elapsed;
+                        time::sleep(wait.min(Duration::from_millis(5))).await;
+                    }
+                }
+            } else if video_finished && audio_started {
+                if let Some(audio_player) = &self.audio_player {
+                    if audio_player.is_playing() {
+                        println!("Waiting for audio to finish...");
+                        time::sleep(Duration::from_millis(1000)).await;
+                        continue;
+                    } else {
+                        println!("Audio finished");
                         break;
                     }
                 } else {
-                    time::sleep(Duration::from_millis(16)).await;
+                    break;
                 }
+            } else {
+                time::sleep(Duration::from_millis(16)).await;
             }
         }
 
@@ -503,6 +516,7 @@ impl Player {
         Ok(())
     }
 
+    #[allow(dead_code)]
     pub fn command_sender(&self) -> Sender<PlayerCommand> {
         self.command_tx.clone()
     }
