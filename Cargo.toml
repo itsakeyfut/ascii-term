@@ -1,8 +1,8 @@
 [workspace]
 members = [
-    "media-core",
-    "terminal-player",
-    "downloader",
+    "app/codec",
+    "app/ascii-term",
+    "app/downloader",
     "xtask"
 ]
 

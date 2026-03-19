@@ -22,23 +22,23 @@ setup:
 build:
     cargo build --workspace
 
-# Build terminal-player in release mode (optimized)
+# Build ascii-term in release mode (optimized)
 build-release:
-    cargo build -p terminal-player --release
+    cargo build -p ascii-term --release
 
 # === Run Commands ===
 
-# Run terminal-player (pass arguments with `-- <args>`, e.g. `just run -- video.mp4`)
+# Run ascii-term (pass arguments with `-- <args>`, e.g. `just run -- video.mp4`)
 run *args:
-    cargo run -p terminal-player -- {{args}}
+    cargo run -p ascii-term -- {{args}}
 
-# Run terminal-player with debug logging
+# Run ascii-term with debug logging
 dev *args:
-    RUST_LOG=debug cargo run -p terminal-player -- {{args}}
+    RUST_LOG=debug cargo run -p ascii-term -- {{args}}
 
-# Run terminal-player in release mode
+# Run ascii-term in release mode
 release *args:
-    cargo run -p terminal-player --release -- {{args}}
+    cargo run -p ascii-term --release -- {{args}}
 
 # === Code Quality ===
 
@@ -63,8 +63,8 @@ test:
 # Run unit tests: all crates / specific crate / specific test in crate
 # Examples:
 #   just unit-test                          # All unit tests
-#   just unit-test media-core               # All unit tests in media-core
-#   just unit-test media-core test_decode   # Specific test
+#   just unit-test codec               # All unit tests in codec
+#   just unit-test codec test_decode   # Specific test
 unit-test crate="" test="":
     #!/usr/bin/env bash
     set -euo pipefail
@@ -79,8 +79,8 @@ unit-test crate="" test="":
 # Run integration tests: all crates / specific crate / specific test in crate
 # Examples:
 #   just integration-test                          # All integration tests
-#   just integration-test media-core               # All integration tests in media-core
-#   just integration-test media-core test_pipeline # Specific test
+#   just integration-test codec               # All integration tests in codec
+#   just integration-test codec test_pipeline # Specific test
 integration-test crate="" test="":
     #!/usr/bin/env bash
     set -euo pipefail

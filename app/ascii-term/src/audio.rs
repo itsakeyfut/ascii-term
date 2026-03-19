@@ -9,7 +9,7 @@ use anyhow::Result;
 use crossbeam_channel::{Receiver, RecvTimeoutError, Sender, unbounded};
 use rodio::{OutputStream, Sink, Source};
 
-use media_core::MediaFile;
+use codec::MediaFile;
 
 struct FFmpegAudioStream {
     process: std::process::Child,

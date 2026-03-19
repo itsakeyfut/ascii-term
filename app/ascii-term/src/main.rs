@@ -7,7 +7,7 @@ mod terminal;
 use anyhow::Result;
 use clap::Parser;
 
-use media_core::MediaFile;
+use codec::MediaFile;
 
 #[derive(Parser, Debug)]
 #[command(name = "ascii_term")]
@@ -67,7 +67,7 @@ async fn main() -> Result<()> {
         return audio::diagnose_audio_system();
     }
 
-    media_core::init()?;
+    codec::init()?;
 
     let media_path = if is_url(&args.input) {
         handle_url_input(&args.input, &args.browser).await?
