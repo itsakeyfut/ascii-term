@@ -3,8 +3,7 @@ use std::sync::atomic::{AtomicBool, Ordering};
 use std::time::{Duration, Instant};
 
 use anyhow::Result;
-use codec::PipelineBuilder;
-use codec::video::VideoFrame;
+use codec::video::{AsyncVideoDecoder, VideoFrame};
 use crossbeam_channel::{Receiver, Sender, unbounded};
 use tokio::time;
 
@@ -153,16 +152,14 @@ impl Player {
         let fps = self.config.fps.or(self.media_file.info.fps).unwrap_or(30.0);
         let frame_duration = Duration::from_secs_f64(1.0 / fps);
 
-        let video_media_file = MediaFile::open(&self.media_file.path)?;
-        let mut pipeline = PipelineBuilder::new().buffer_size(8).build();
+        // AsyncVideoDecoder: decode_one().await は spawn_blocking を使い、
+        // エグゼキューターをブロックしない → terminal タスクが確実に動く
+        let mut decoder = AsyncVideoDecoder::open(&self.media_file.path).await?;
 
-        pipeline.set_media(video_media_file)?;
-        pipeline.start()?;
-
-        println!("Video pipeline started. Press 'space' to play/pause, 'q' to quit.");
+        println!("Video decoder started. Press 'space' to play/pause, 'q' to quit.");
 
         if let Some(terminal) = self.terminal.take() {
-            let _terminal_handle = tokio::spawn(async move {
+            tokio::spawn(async move {
                 if let Err(e) = terminal.run().await {
                     eprintln!("Terminal error: {}", e);
                 }
@@ -189,7 +186,6 @@ impl Player {
 
         let mut frame_count = 0u64;
         let playback_start_time = Instant::now();
-        let mut video_finished = false;
         let mut pending_frame: Option<VideoFrame> = None;
         let mut pts_offset: Option<Duration> = None;
 
@@ -203,40 +199,29 @@ impl Player {
                 self.handle_command(command).await?;
             }
 
-            if self.state.load(Ordering::Relaxed) && !video_finished {
-                // Fetch next frame if none pending
+            if self.state.load(Ordering::Relaxed) {
+                // pending_frame がなければ次のフレームをデコード（非ブロッキング）
                 if pending_frame.is_none() {
-                    match pipeline.next_frame()? {
+                    match decoder.decode_one().await? {
                         Some(frame) => {
-                            // Record PTS of first frame as offset (some files start at non-zero PTS)
                             if pts_offset.is_none() {
                                 pts_offset = Some(frame.timestamp);
                             }
                             pending_frame = Some(frame);
                         }
                         None => {
-                            if pipeline.is_finished() {
-                                println!("Video stream finished");
+                            println!("Video stream finished");
 
-                                if self.config.loop_playback {
-                                    println!("Restarting video loop...");
-                                    pipeline.stop()?;
-
-                                    let loop_media_file = MediaFile::open(&self.media_file.path)?;
-                                    pipeline.set_media(loop_media_file)?;
-                                    pipeline.start()?;
-
-                                    frame_count = 0;
-                                    pending_frame = None;
-                                    pts_offset = None;
-                                    video_finished = false;
-                                    println!("Video loop restarted");
-                                } else {
-                                    println!("Video finished, waiting for audio to complete...");
-                                    break;
-                                }
+                            if self.config.loop_playback {
+                                println!("Restarting video loop...");
+                                decoder = AsyncVideoDecoder::open(&self.media_file.path).await?;
+                                frame_count = 0;
+                                pending_frame = None;
+                                pts_offset = None;
+                                println!("Video loop restarted");
                             } else {
-                                time::sleep(Duration::from_millis(10)).await;
+                                println!("Video finished, waiting for audio to complete...");
+                                break;
                             }
                             continue;
                         }
@@ -252,16 +237,14 @@ impl Player {
                         let frame = pending_frame.take().unwrap();
                         let lag = elapsed.saturating_sub(frame_pts);
 
-                        // Skip frame if more than 2 frame durations behind to catch up to audio
+                        // 2フレーム以上遅れている場合はスキップして音声に追いつく
                         if lag <= frame_duration * 2 {
                             let rendered_frame = self.renderer.render_video_frame(&frame)?;
-
                             if self.frame_tx.send(rendered_frame).is_err() {
                                 println!("Frame receiver closed");
                                 break;
                             }
                         }
-                        // else: drop this frame silently, fetch the next one immediately
 
                         frame_count += 1;
                     } else {
@@ -269,20 +252,8 @@ impl Player {
                         time::sleep(wait.min(Duration::from_millis(5))).await;
                     }
                 }
-            } else if video_finished && audio_started {
-                if let Some(audio_player) = &self.audio_player {
-                    if audio_player.is_playing() {
-                        println!("Waiting for audio to finish...");
-                        time::sleep(Duration::from_millis(1000)).await;
-                        continue;
-                    } else {
-                        println!("Audio finished");
-                        break;
-                    }
-                } else {
-                    break;
-                }
             } else {
+                // 一時停止中
                 time::sleep(Duration::from_millis(16)).await;
             }
         }
@@ -318,9 +289,6 @@ impl Player {
                 println!("Audio wait timeout reached");
             }
         }
-
-        println!("Cleaning up video and audio resources...");
-        pipeline.stop()?;
 
         if let Some(audio_player) = &mut self.audio_player {
             if let Err(e) = audio_player.stop() {
