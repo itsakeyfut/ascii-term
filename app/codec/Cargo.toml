@@ -5,7 +5,7 @@ edition = "2024"
 
 [dependencies]
 # メディアデコード
-avio = { workspace = true }
+avio = { version = "0.13.0", features = ["tokio"] }
 
 # OpenCV
 opencv = { workspace = true }

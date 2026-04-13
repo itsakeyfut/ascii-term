@@ -29,7 +29,6 @@ impl AudioDecoder {
                 Ok(Some(audio_frame))
             }
             Ok(None) => Ok(None),
-            Err(avio::DecodeError::EndOfStream) => Ok(None),
             Err(e) => Err(MediaError::Decode(e)),
         }
     }

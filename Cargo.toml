@@ -10,7 +10,7 @@ resolver = "3"
 
 [workspace.dependencies]
 # メディアデコード
-avio = "0.6.0"
+avio = "0.13.0"
 
 # OpenCV
 opencv = { version = "0.94.4", default-features = false, features = ["videoio", "imgproc", "imgcodecs", "clang-runtime"] }

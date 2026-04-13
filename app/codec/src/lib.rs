@@ -2,12 +2,10 @@ pub mod audio;
 pub mod errors;
 pub mod image;
 pub mod media;
-pub mod pipeline;
 pub mod video;
 
 pub use errors::{MediaError, Result};
 pub use media::{MediaFile, MediaInfo, MediaType};
-pub use pipeline::{Pipeline, PipelineBuilder};
 
 /// ライブラリの初期化
 pub fn init() -> Result<()> {
