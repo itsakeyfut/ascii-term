@@ -85,15 +85,15 @@ impl AsyncVideoDecoder {
     pub async fn decode_one(&mut self) -> Result<Option<VideoFrame>> {
         let inner = Arc::clone(&self.inner);
 
-        let avio_frame = tokio::task::spawn_blocking(move || {
-            inner
-                .lock()
-                .expect("VideoDecoder mutex not poisoned")
-                .decode_one()
-        })
-        .await
-        .map_err(|e| MediaError::Pipeline(format!("spawn_blocking panicked: {e}")))?
-        .map_err(MediaError::Decode)?;
+        let avio_frame =
+            tokio::task::spawn_blocking(move || -> Result<Option<avio::VideoFrame>> {
+                let mut guard = inner
+                    .lock()
+                    .map_err(|_| MediaError::Pipeline("VideoDecoder mutex poisoned".to_string()))?;
+                guard.decode_one().map_err(MediaError::Decode)
+            })
+            .await
+            .map_err(|e| MediaError::Pipeline(format!("spawn_blocking panicked: {e}")))??;
 
         match avio_frame {
             Some(frame) => {

@@ -38,10 +38,10 @@ impl From<ResizeAlgorithm> for fr::ResizeAlg {
     fn from(alg: ResizeAlgorithm) -> Self {
         match alg {
             ResizeAlgorithm::Nearest => fr::ResizeAlg::Nearest,
-            ResizeAlgorithm::Bilinear => unimplemented!(),
-            ResizeAlgorithm::Bicubic => unimplemented!(),
-            ResizeAlgorithm::Lanczos3 => unimplemented!(),
-            ResizeAlgorithm::CatmullRom => unimplemented!(),
+            ResizeAlgorithm::Bilinear => fr::ResizeAlg::Convolution(fr::FilterType::Bilinear),
+            ResizeAlgorithm::Bicubic => fr::ResizeAlg::Convolution(fr::FilterType::Mitchell),
+            ResizeAlgorithm::Lanczos3 => fr::ResizeAlg::Convolution(fr::FilterType::Lanczos3),
+            ResizeAlgorithm::CatmullRom => fr::ResizeAlg::Convolution(fr::FilterType::CatmullRom),
         }
     }
 }
@@ -430,4 +430,24 @@ fn hsv_to_rgb(h: f32, s: f32, v: f32) -> (u8, u8, u8) {
     let b = ((b_prime + m) * 255.0) as u8;
 
     (r, g, b)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    /// すべての ResizeAlgorithm が panic せず fr::ResizeAlg に変換できること
+    /// （以前は Lanczos3 など既定値が unimplemented!() でパニックしていた回帰の防止）
+    #[test]
+    fn resize_algorithm_into_fr_is_total() {
+        for alg in [
+            ResizeAlgorithm::Nearest,
+            ResizeAlgorithm::Bilinear,
+            ResizeAlgorithm::Bicubic,
+            ResizeAlgorithm::Lanczos3,
+            ResizeAlgorithm::CatmullRom,
+        ] {
+            let _: fr::ResizeAlg = alg.into();
+        }
+    }
 }
