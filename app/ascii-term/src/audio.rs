@@ -118,18 +118,16 @@ impl Iterator for DirectAudioSource {
     }
 }
 
-#[allow(dead_code)]
 pub struct AudioPlayer {
     _stream: OutputStream,
     sink: Sink,
     is_muted: Arc<AtomicBool>,
     original_volume: f32,
-    audio_sender: Option<Sender<Vec<f32>>>,
+    _audio_sender: Option<Sender<Vec<f32>>>,
     decoder_thread: Option<thread::JoinHandle<()>>,
     stop_signal: Arc<AtomicBool>,
-    is_finished: Arc<AtomicBool>,
+    _is_finished: Arc<AtomicBool>,
     sample_rate: u32,
-    channels: u16,
 }
 
 impl AudioPlayer {
@@ -191,12 +189,11 @@ impl AudioPlayer {
             sink,
             is_muted: Arc::new(AtomicBool::new(false)),
             original_volume: 1.0,
-            audio_sender: Some(audio_sender),
+            _audio_sender: Some(audio_sender),
             decoder_thread: Some(decoder_thread),
             stop_signal,
-            is_finished,
+            _is_finished: is_finished,
             sample_rate,
-            channels,
         })
     }
 
@@ -230,27 +227,6 @@ impl AudioPlayer {
         Ok(())
     }
 
-    pub fn set_volume(&mut self, volume: f32) -> Result<()> {
-        let clamped_volume = volume.clamp(0.0, 1.0);
-        self.original_volume = clamped_volume;
-
-        if !self.is_muted.load(Ordering::Relaxed) {
-            self.sink.set_volume(clamped_volume);
-        }
-
-        println!("Volume set to: {:.2}", clamped_volume);
-        Ok(())
-    }
-
-    #[allow(dead_code)]
-    pub fn volume(&self) -> f32 {
-        if self.is_muted.load(Ordering::Relaxed) {
-            0.0
-        } else {
-            self.original_volume
-        }
-    }
-
     pub fn mute(&mut self) -> Result<()> {
         println!("Muting audio");
         self.is_muted.store(true, Ordering::Relaxed);
@@ -279,16 +255,6 @@ impl AudioPlayer {
 
     pub fn is_muted(&self) -> bool {
         self.is_muted.load(Ordering::Relaxed)
-    }
-
-    #[allow(dead_code)]
-    pub fn sample_rate(&self) -> u32 {
-        self.sample_rate
-    }
-
-    #[allow(dead_code)]
-    pub fn channels(&self) -> u16 {
-        self.channels
     }
 }
 

@@ -19,8 +19,6 @@ pub struct PlayerConfig {
     pub char_map_index: u8,
     pub grayscale: bool,
     pub width_modifier: u32,
-    #[allow(dead_code)]
-    pub allow_frame_skip: bool,
     pub add_newlines: bool,
     pub enable_audio: bool,
 }
@@ -33,7 +31,6 @@ impl Default for PlayerConfig {
             char_map_index: 0,
             grayscale: false,
             width_modifier: 1,
-            allow_frame_skip: false,
             add_newlines: false,
             enable_audio: true,
         }
@@ -41,28 +38,14 @@ impl Default for PlayerConfig {
 }
 
 #[derive(Debug, Clone)]
-#[allow(dead_code)]
 pub enum PlayerCommand {
     Play,
     Pause,
     Stop,
-    Seek(Duration),
-    SetVolume(f32),
-    Mute,
-    Unmute,
     TogglePlayPause,
     ToggleMute,
     SetCharMap(u8),
     ToggleGrayscale,
-    Resize(u16, u16),
-}
-
-#[derive(Debug, Clone, PartialEq)]
-#[allow(dead_code)]
-pub enum PlayerState {
-    Playing,
-    Paused,
-    Stopped,
 }
 
 pub struct Player {
@@ -96,7 +79,6 @@ impl Player {
             char_map_index: config.char_map_index,
             grayscale: config.grayscale,
             add_newlines: config.add_newlines,
-            width_modifier: config.width_modifier,
         };
 
         let renderer = AsciiRenderer::new(render_config);
@@ -450,17 +432,6 @@ impl Player {
                     println!("Audio not available for mute toggle");
                 }
             }
-            PlayerCommand::SetVolume(volume) => {
-                if let Some(audio_player) = &mut self.audio_player {
-                    if let Err(e) = audio_player.set_volume(volume) {
-                        eprintln!("Warning: Failed to set volume: {}", e);
-                    } else {
-                        println!("Volume set to: {:.2}", volume);
-                    }
-                } else {
-                    println!("Audio not available for volume control");
-                }
-            }
             PlayerCommand::SetCharMap(index) => {
                 self.renderer.set_char_map(index);
                 println!(
@@ -473,19 +444,7 @@ impl Player {
                 self.renderer.set_grayscale(self.config.grayscale);
                 println!("Grayscale mode: {}", self.config.grayscale);
             }
-            PlayerCommand::Resize(width, height) => {
-                self.renderer.update_resolution(width, height);
-                println!("Resolution updated: {}x{}", width, height);
-            }
-            _ => {
-                println!("Command not implemented: {:?}", command);
-            }
         }
         Ok(())
-    }
-
-    #[allow(dead_code)]
-    pub fn command_sender(&self) -> Sender<PlayerCommand> {
-        self.command_tx.clone()
     }
 }
