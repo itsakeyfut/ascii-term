@@ -110,10 +110,7 @@ impl AudioFrame {
 
         // avio 0.13.0: to_f32_interleaved() がすべての形式・プレーナー/パックドを処理する
         let f32_samples = frame.to_f32_interleaved();
-        let data: Vec<u8> = f32_samples
-            .iter()
-            .flat_map(|s| s.to_le_bytes())
-            .collect();
+        let data: Vec<u8> = f32_samples.iter().flat_map(|s| s.to_le_bytes()).collect();
 
         Ok(Self::new(
             data,
