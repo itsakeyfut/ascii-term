@@ -41,10 +41,6 @@ struct Args {
     #[arg(short, long, default_value = "1")]
     width_mod: u32,
 
-    /// Allow frame skipping when behind
-    #[arg(long)]
-    allow_frame_skip: bool,
-
     /// Add newlines to output
     #[arg(short, long)]
     newlines: bool,
@@ -122,7 +118,6 @@ async fn main() -> Result<()> {
         char_map_index: args.char_map,
         grayscale: args.gray,
         width_modifier: args.width_mod,
-        allow_frame_skip: args.allow_frame_skip,
         add_newlines: args.newlines,
         enable_audio: !args.no_audio && media_file.info.has_audio,
     };

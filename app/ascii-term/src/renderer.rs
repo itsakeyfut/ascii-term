@@ -12,7 +12,6 @@ pub struct RenderConfig {
     pub char_map_index: u8,
     pub grayscale: bool,
     pub add_newlines: bool,
-    pub width_modifier: u32,
 }
 
 impl Default for RenderConfig {
@@ -23,7 +22,6 @@ impl Default for RenderConfig {
             char_map_index: 0,
             grayscale: false,
             add_newlines: false,
-            width_modifier: 1,
         }
     }
 }
@@ -47,16 +45,6 @@ impl AsciiRenderer {
             config,
             resizer: fr::Resizer::new(),
         }
-    }
-
-    #[allow(dead_code)]
-    pub fn update_config(&mut self, config: RenderConfig) {
-        self.config = config;
-    }
-
-    pub fn update_resolution(&mut self, width: u16, height: u16) {
-        self.config.target_width = (width / self.config.width_modifier as u16) as u32;
-        self.config.target_height = height as u32;
     }
 
     pub fn set_char_map(&mut self, index: u8) {

@@ -74,12 +74,6 @@ pub fn get_char_map_name(index: u8) -> &'static str {
     CHAR_MAP_NAMES[index]
 }
 
-/// Get the total number of character maps
-#[allow(dead_code)]
-pub fn char_map_count() -> usize {
-    CHAR_MAPS.len()
-}
-
 /// Mapping lightness values (0-255) to characters
 pub fn luminance_to_char(luminance: u8, char_map: &str) -> char {
     let chars: Vec<char> = char_map.chars().collect();
