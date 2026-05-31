@@ -1,7 +1,6 @@
 use std::time::Duration;
 
 use image::{DynamicImage, ImageBuffer};
-use opencv::{core::Mat, prelude::*};
 
 use crate::errors::{MediaError, Result};
 
@@ -55,30 +54,6 @@ impl VideoFrame {
         let timestamp = frame.timestamp().as_duration();
         let pts = frame.timestamp().pts();
         let data = frame.data();
-
-        Ok(Self::new(data, width, height, format, timestamp, pts))
-    }
-
-    /// OpenCV の Mat から VideoFrame を作成
-    pub fn from_opencv_mat(mat: &Mat, timestamp: Duration, pts: i64) -> Result<Self> {
-        let size = mat.size()?;
-        let width = size.width as u32;
-        let height = size.height as u32;
-
-        let mat_type = mat.typ();
-        let format = match mat_type {
-            opencv::core::CV_8UC3 => FrameFormat::BGR8,
-            opencv::core::CV_8UC4 => FrameFormat::BGRA8,
-            opencv::core::CV_8UC1 => FrameFormat::Gray8,
-            _ => {
-                return Err(MediaError::Video(format!(
-                    "Unsupported mat type: {}",
-                    mat_type
-                )));
-            }
-        };
-
-        let data = mat.data_bytes()?.to_vec();
 
         Ok(Self::new(data, width, height, format, timestamp, pts))
     }
@@ -155,52 +130,6 @@ impl VideoFrame {
                 "Unsupported format for conversion to DynamicImage".to_string(),
             )),
         }
-    }
-
-    /// OpenCV の Mat に変換
-    pub fn to_opencv_mat(&self) -> Result<Mat> {
-        let mat_type = match self.format {
-            FrameFormat::BGR8 => opencv::core::CV_8UC3,
-            FrameFormat::BGRA8 => opencv::core::CV_8UC4,
-            FrameFormat::RGB8 => opencv::core::CV_8UC3,
-            FrameFormat::RGBA8 => opencv::core::CV_8UC4,
-            FrameFormat::Gray8 => opencv::core::CV_8UC1,
-            _ => {
-                return Err(MediaError::Video(
-                    "Unsupported format for OpenCV Mat".to_string(),
-                ));
-            }
-        };
-
-        let mut mat = Mat::new_rows_cols_with_default(
-            self.height as i32,
-            self.width as i32,
-            mat_type,
-            opencv::core::Scalar::all(0.0),
-        )?;
-
-        let mat_data = mat.data_bytes_mut()?;
-
-        if self.format == FrameFormat::RGB8 || self.format == FrameFormat::RGBA8 {
-            let channels = if self.format == FrameFormat::RGB8 {
-                3
-            } else {
-                4
-            };
-            for i in 0..(self.data.len() / channels) {
-                let base_idx = i * channels;
-                mat_data[base_idx] = self.data[base_idx + 2]; // B
-                mat_data[base_idx + 1] = self.data[base_idx + 1]; // G
-                mat_data[base_idx + 2] = self.data[base_idx]; // R
-                if channels == 4 {
-                    mat_data[base_idx + 3] = self.data[base_idx + 3]; // A
-                }
-            }
-        } else {
-            mat_data.copy_from_slice(&self.data);
-        }
-
-        Ok(mat)
     }
 
     /// リサイズ

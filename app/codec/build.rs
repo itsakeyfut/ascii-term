@@ -19,8 +19,6 @@ fn main() {
             println!("cargo:warning=Unsupported target OS: {}", target_os);
         }
     }
-
-    configure_opencv();
 }
 
 fn configure_windows() {
@@ -50,11 +48,4 @@ fn configure_linux() {
     println!("cargo:rustc-link-lib=pthread");
     println!("cargo:rustc-link-lib=dl");
     println!("cargo:rustc-link-lib=m");
-}
-
-fn configure_opencv() {
-    if let Ok(opencv_dir) = env::var("OPENCV_DIR") {
-        println!("cargo:rustc-link-search=native={}/lib", opencv_dir);
-        println!("cargo:rustc-link-search=native={}/x64/vc16/lib", opencv_dir);
-    }
 }
