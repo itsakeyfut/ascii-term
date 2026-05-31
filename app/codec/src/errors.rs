@@ -10,9 +10,6 @@ pub enum MediaError {
     #[error("Probe error: {0}")]
     Probe(#[from] avio::ProbeError),
 
-    #[error("OpenCV error: {0}")]
-    OpenCV(#[from] opencv::Error),
-
     #[error("Image processing error: {0}")]
     Image(#[from] image::ImageError),
 
@@ -33,10 +30,4 @@ pub enum MediaError {
 
     #[error("Pipeline error: {0}")]
     Pipeline(String),
-
-    #[error("Configuration error: {0}")]
-    Config(String),
-
-    #[error("Resource not found: {0}")]
-    ResourceNotFound(String),
 }

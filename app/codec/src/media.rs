@@ -79,19 +79,3 @@ impl MediaFile {
         }
     }
 }
-
-/// 静的画像ファイルを検出
-pub fn is_image_file<P: AsRef<Path>>(path: P) -> bool {
-    if let Some(ext) = path.as_ref().extension() {
-        if let Some(ext_str) = ext.to_str() {
-            matches!(
-                ext_str.to_lowercase().as_str(),
-                "jpg" | "jpeg" | "png" | "bmp" | "gif" | "webp" | "tiff" | "tif"
-            )
-        } else {
-            false
-        }
-    } else {
-        false
-    }
-}

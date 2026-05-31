@@ -12,9 +12,6 @@ resolver = "3"
 # メディアデコード
 avio = "0.14.3"
 
-# OpenCV
-opencv = { version = "0.94.4", default-features = false, features = ["videoio", "imgproc", "imgcodecs", "clang-runtime"] }
-
 # 画像処理
 image = "0.25.6"
 fast_image_resize = "5.1.4"
@@ -40,6 +37,3 @@ clap = { version = "4.5.40", features = ["derive"] }
 tempfile = "3.20.0"
 url = "2.5.4"
 reqwest = { version = "0.12.20", features = ["blocking", "stream"] }
-
-# 数値計算
-num = "0.4.3"
