@@ -1,12 +1,11 @@
 //! Development environment setup commands
 //!
-//! Platform-specific setup for FFmpeg, OpenCV, and build tools.
+//! Platform-specific setup for FFmpeg and build tools.
 //!
 //! # Dependency Strategy
 //!
 //! - FFmpeg: Manually installed by the user (set FFMPEG_DIR env var)
-//! - OpenCV: Installed via official Windows release or system package manager
-//! - LLVM/Clang: Required for opencv-rs bindgen
+//! - LLVM/Clang: Required for avio (ff-sys) bindgen
 
 use anyhow::Result;
 use colored::*;
@@ -104,62 +103,7 @@ fn setup_windows(skip_verify: bool) -> Result<()> {
     setup_ffmpeg_windows()?;
     println!();
 
-    // OpenCV: install directly
-    println!("{}", "Setting up OpenCV...".bold());
-    let opencv_dir = Path::new("D:\\libs\\opencv");
-    if !opencv_dir.join("build").exists() {
-        println!("{} OpenCV not found, installing...", "→".blue());
-
-        run_powershell(
-            "if (!(Test-Path D:\\libs)) { New-Item -ItemType Directory -Path D:\\libs }",
-        )?;
-        run_powershell(
-            "if (!(Test-Path D:\\libs\\tmp)) { New-Item -ItemType Directory -Path D:\\libs\\tmp }",
-        )?;
-
-        println!(
-            "{} Downloading OpenCV (this may take a while)...",
-            "→".blue()
-        );
-        run_powershell(
-            "[Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12; Invoke-WebRequest -Uri 'https://github.com/opencv/opencv/releases/download/4.9.0/opencv-4.9.0-windows.exe' -OutFile 'D:\\libs\\tmp\\opencv.exe' -UseBasicParsing",
-        )?;
-
-        println!("{} Extracting OpenCV...", "→".blue());
-        run_powershell(
-            "Start-Process -FilePath D:\\libs\\tmp\\opencv.exe -ArgumentList '-oD:\\libs -y' -Wait",
-        )?;
-
-        println!("{} Cleaning up temporary files...", "→".blue());
-        let _ = run_powershell(
-            "Remove-Item -Path 'D:\\libs\\tmp\\opencv.exe' -Force -ErrorAction SilentlyContinue",
-        );
-
-        println!("{} OpenCV installed to D:\\libs\\opencv", "✓".green());
-    } else {
-        println!("{} OpenCV already installed", "✓".green());
-    }
-
-    println!("{} Setting OpenCV environment variables...", "→".blue());
-    run_powershell(
-        "[Environment]::SetEnvironmentVariable('OPENCV_DIR', 'D:\\libs\\opencv\\build', 'User')",
-    )?;
-    run_powershell(
-        "[Environment]::SetEnvironmentVariable('OPENCV_INCLUDE_PATHS', 'D:\\libs\\opencv\\build\\include', 'User')",
-    )?;
-    run_powershell(
-        "[Environment]::SetEnvironmentVariable('OPENCV_LINK_PATHS', 'D:\\libs\\opencv\\build\\x64\\vc16\\lib', 'User')",
-    )?;
-    run_powershell(
-        "[Environment]::SetEnvironmentVariable('OPENCV_LINK_LIBS', 'opencv_world490', 'User')",
-    )?;
-    run_powershell(
-        "$path = [Environment]::GetEnvironmentVariable('Path', 'User'); if ($path -notlike '*D:\\libs\\opencv\\build\\x64\\vc16\\bin*') { [Environment]::SetEnvironmentVariable('Path', $path + ';D:\\libs\\opencv\\build\\x64\\vc16\\bin', 'User') }",
-    )?;
-    println!("{} Environment variables set", "✓".green());
-    println!();
-
-    // LLVM: required for opencv-rs clang-runtime feature
+    // LLVM: required for avio (ff-sys) bindgen
     println!("{}", "Setting up LLVM (clang)...".bold());
     let llvm_installed = Command::new("clang")
         .arg("--version")
@@ -455,14 +399,6 @@ fn verify_windows_setup() -> Result<()> {
         );
     }
 
-    // OpenCV
-    let opencv_dll = Path::new("D:\\libs\\opencv\\build\\x64\\vc16\\bin\\opencv_world490.dll");
-    if opencv_dll.exists() {
-        println!("{} OpenCV OK", "✓".green());
-    } else {
-        println!("{} OpenCV not found", "✗".red());
-    }
-
     // LLVM
     let llvm_exe = Path::new("C:\\Program Files\\LLVM\\bin\\clang.exe");
     if llvm_exe.exists() {
@@ -479,15 +415,6 @@ fn verify_windows_setup() -> Result<()> {
     } else {
         println!(
             "{} FFMPEG_DIR not set (restart terminal after setup)",
-            "⚠".yellow()
-        );
-    }
-
-    if std::env::var("OPENCV_DIR").is_ok() {
-        println!("{} OPENCV_DIR set", "✓".green());
-    } else {
-        println!(
-            "{} OPENCV_DIR not set (restart terminal after setup)",
             "⚠".yellow()
         );
     }
@@ -545,11 +472,6 @@ fn setup_linux(skip_verify: bool) -> Result<()> {
         ]);
         execute_command(&mut cmd)?;
 
-        println!("{} Installing OpenCV...", "→".blue());
-        let mut cmd = Command::new("sudo");
-        cmd.args(["apt-get", "install", "-y", "libopencv-dev"]);
-        execute_command(&mut cmd)?;
-
         println!("{} Installing audio libraries...", "→".blue());
         let mut cmd = Command::new("sudo");
         cmd.args(["apt-get", "install", "-y", "libasound2-dev"]);
@@ -591,7 +513,7 @@ fn setup_macos(skip_verify: bool) -> Result<()> {
     cmd.args(["install", "cmake", "pkg-config", "llvm"]);
     execute_command(&mut cmd)?;
 
-    // brew's LLVM is not in PATH by default; set LIBCLANG_PATH so opencv-rs bindgen works
+    // brew's LLVM is not in PATH by default; set LIBCLANG_PATH so avio (ff-sys) bindgen works
     println!("{} Configuring LLVM (brew)...", "→".blue());
     let llvm_prefix_output = Command::new("brew").args(["--prefix", "llvm"]).output();
     if let Ok(out) = llvm_prefix_output {
@@ -611,11 +533,6 @@ fn setup_macos(skip_verify: bool) -> Result<()> {
             std::env::set_var("LIBCLANG_PATH", &libclang_path);
         }
     }
-
-    println!("{} Installing OpenCV...", "→".blue());
-    let mut cmd = Command::new("brew");
-    cmd.args(["install", "opencv"]);
-    execute_command(&mut cmd)?;
 
     println!("{} Installing FFmpeg...", "→".blue());
     let mut cmd = Command::new("brew");
@@ -689,7 +606,6 @@ fn run_powershell(_script: &str) -> Result<()> {
 #[cfg(any(target_os = "linux", target_os = "macos"))]
 fn verify_linux_setup() -> Result<()> {
     check_pkg_config("libavcodec", "FFmpeg")?;
-    check_pkg_config("opencv4", "OpenCV")?;
 
     #[cfg(target_os = "linux")]
     check_pkg_config("alsa", "ALSA")?;
