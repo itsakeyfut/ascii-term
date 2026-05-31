@@ -47,13 +47,7 @@ fn setup_windows(skip_verify: bool) -> Result<()> {
     check_command("git", "Git not found. Install from: https://git-scm.com/")?;
     check_command("cargo", "Rust not found. Install from: https://rustup.rs/")?;
 
-    let has_choco = Command::new("choco")
-        .arg("--version")
-        .stdout(Stdio::null())
-        .stderr(Stdio::null())
-        .status()
-        .map(|s| s.success())
-        .unwrap_or(false);
+    let has_choco = command_succeeds("choco", "--version");
 
     if has_choco {
         println!("{} Chocolatey found", "✓".green());
@@ -105,13 +99,7 @@ fn setup_windows(skip_verify: bool) -> Result<()> {
 
     // LLVM: required for avio (ff-sys) bindgen
     println!("{}", "Setting up LLVM (clang)...".bold());
-    let llvm_installed = Command::new("clang")
-        .arg("--version")
-        .stdout(Stdio::null())
-        .stderr(Stdio::null())
-        .status()
-        .map(|s| s.success())
-        .unwrap_or(false);
+    let llvm_installed = command_succeeds("clang", "--version");
 
     if !llvm_installed {
         let llvm_path = Path::new("C:\\Program Files\\LLVM\\bin\\clang.exe");
@@ -287,13 +275,7 @@ fn setup_ffmpeg_windows() -> Result<()> {
 fn setup_build_tools() -> Result<()> {
     use std::path::Path;
 
-    let cmake_installed = Command::new("cmake")
-        .arg("--version")
-        .stdout(Stdio::null())
-        .stderr(Stdio::null())
-        .status()
-        .map(|s| s.success())
-        .unwrap_or(false);
+    let cmake_installed = command_succeeds("cmake", "--version");
 
     if !cmake_installed {
         println!("{} CMake not found, installing...", "→".blue());
@@ -333,13 +315,7 @@ fn setup_build_tools() -> Result<()> {
         println!("{} CMake already installed", "✓".green());
     }
 
-    let pkgconfig_installed = Command::new("pkg-config")
-        .arg("--version")
-        .stdout(Stdio::null())
-        .stderr(Stdio::null())
-        .status()
-        .map(|s| s.success())
-        .unwrap_or(false);
+    let pkgconfig_installed = command_succeeds("pkg-config", "--version");
 
     if !pkgconfig_installed {
         println!(
@@ -350,13 +326,7 @@ fn setup_build_tools() -> Result<()> {
         cmd.arg("install").arg("pkgconfiglite").arg("-y");
         let _ = cmd.stdout(Stdio::null()).stderr(Stdio::null()).status();
 
-        let pkgconfig_now_installed = Command::new("pkg-config")
-            .arg("--version")
-            .stdout(Stdio::null())
-            .stderr(Stdio::null())
-            .status()
-            .map(|s| s.success())
-            .unwrap_or(false);
+        let pkgconfig_now_installed = command_succeeds("pkg-config", "--version");
 
         if pkgconfig_now_installed {
             println!("{} pkg-config installed", "✓".green());
@@ -558,22 +528,24 @@ fn setup_macos(_skip_verify: bool) -> Result<()> {
     anyhow::bail!("macOS setup can only be run on macOS")
 }
 
-fn check_command(cmd: &str, error_msg: &str) -> Result<()> {
-    let result = Command::new(cmd)
-        .arg("--version")
+/// Returns true if `program arg` runs and exits successfully (probe for an installed tool).
+fn command_succeeds(program: &str, arg: &str) -> bool {
+    Command::new(program)
+        .arg(arg)
         .stdout(Stdio::null())
         .stderr(Stdio::null())
-        .status();
+        .status()
+        .map(|s| s.success())
+        .unwrap_or(false)
+}
 
-    match result {
-        Ok(status) if status.success() => {
-            println!("{} {} found", "✓".green(), cmd);
-            Ok(())
-        }
-        _ => {
-            println!("{} {}", "✗".red().bold(), error_msg);
-            anyhow::bail!(error_msg.to_string())
-        }
+fn check_command(cmd: &str, error_msg: &str) -> Result<()> {
+    if command_succeeds(cmd, "--version") {
+        println!("{} {} found", "✓".green(), cmd);
+        Ok(())
+    } else {
+        println!("{} {}", "✗".red().bold(), error_msg);
+        anyhow::bail!(error_msg.to_string())
     }
 }
 

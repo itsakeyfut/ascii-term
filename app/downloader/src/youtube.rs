@@ -11,26 +11,15 @@ pub async fn download_video(url: &str, _browser: &str) -> Result<PathBuf> {
 
     let temp_file = NamedTempFile::new().map_err(DownloaderError::Io)?;
     let temp_path = temp_file.path().to_path_buf();
+    let temp_path_str = temp_path
+        .to_str()
+        .ok_or_else(|| DownloaderError::Process("Temporary path is not valid UTF-8".to_string()))?;
 
-    let output = Command::new("yt-dlp")
-        .arg(url)
-        // .arg("--cookies-from-browser")
-        // .arg(browser)
-        .arg("-f")
-        .arg("best[ext=mp4]/best")
-        .arg("-o")
-        .arg(&temp_path)
-        .output()
-        .await
-        .map_err(|e| DownloaderError::Process(format!("Failed to execute yt-dlp: {}", e)))?;
-
-    if !output.status.success() {
-        let error_msg = String::from_utf8_lossy(&output.stderr);
-        return Err(DownloaderError::Download(format!(
-            "yt-dlp failed: {}",
-            error_msg
-        )));
-    }
+    run_ytdlp(
+        &[url, "-f", "best[ext=mp4]/best", "-o", temp_path_str],
+        "yt-dlp failed",
+    )
+    .await?;
 
     let persistent_path = temp_file.into_temp_path();
     Ok(persistent_path.to_path_buf())
@@ -40,54 +29,24 @@ pub async fn download_video(url: &str, _browser: &str) -> Result<PathBuf> {
 pub async fn get_video_info(url: &str) -> Result<VideoInfo> {
     check_ytdlp_installed().await?;
 
-    let output = Command::new("yt-dlp")
-        .arg(url)
-        .arg("--dump-json")
-        .arg("--no-download")
-        .output()
-        .await
-        .map_err(|e| DownloaderError::Process(format!("Failed to execute yt-dlp: {}", e)))?;
-
-    if !output.status.success() {
-        let error_msg = String::from_utf8_lossy(&output.stderr);
-        return Err(DownloaderError::Download(format!(
-            "Failed to get video info: {}",
-            error_msg
-        )));
-    }
-
-    let json_str = String::from_utf8_lossy(&output.stdout);
-    let info: VideoInfo = serde_json::from_str(&json_str)
-        .map_err(|e| DownloaderError::Parse(format!("Failed to parse video info: {}", e)))?;
-
-    Ok(info)
+    let stdout = run_ytdlp(
+        &[url, "--dump-json", "--no-download"],
+        "Failed to get video info",
+    )
+    .await?;
+    parse_json(&stdout, "video info")
 }
 
 /// Get available formats
 pub async fn list_formats(url: &str) -> Result<Vec<FormatInfo>> {
     check_ytdlp_installed().await?;
 
-    let output = Command::new("yt-dlp")
-        .arg(url)
-        .arg("--list-formats")
-        .arg("--dump-json")
-        .output()
-        .await
-        .map_err(|e| DownloaderError::Process(format!("Failed to execute yt-dlp: {}", e)))?;
-
-    if !output.status.success() {
-        let error_msg = String::from_utf8_lossy(&output.stderr);
-        return Err(DownloaderError::Download(format!(
-            "Failed to list formats: {}",
-            error_msg
-        )));
-    }
-
-    let json_str = String::from_utf8_lossy(&output.stdout);
-    let formats: Vec<FormatInfo> = serde_json::from_str(&json_str)
-        .map_err(|e| DownloaderError::Parse(format!("Failed to parse formats: {}", e)))?;
-
-    Ok(formats)
+    let stdout = run_ytdlp(
+        &[url, "--list-formats", "--dump-json"],
+        "Failed to list formats",
+    )
+    .await?;
+    parse_json(&stdout, "formats")
 }
 
 /// Check if yt-dlp is installed
@@ -101,6 +60,32 @@ async fn check_ytdlp_installed() -> Result<()> {
                 .to_string(),
         )),
     }
+}
+
+/// Run yt-dlp with the given arguments, returning captured stdout on success.
+async fn run_ytdlp(args: &[&str], failure_context: &str) -> Result<Vec<u8>> {
+    let output = Command::new("yt-dlp")
+        .args(args)
+        .output()
+        .await
+        .map_err(|e| DownloaderError::Process(format!("Failed to execute yt-dlp: {}", e)))?;
+
+    if !output.status.success() {
+        let error_msg = String::from_utf8_lossy(&output.stderr);
+        return Err(DownloaderError::Download(format!(
+            "{}: {}",
+            failure_context, error_msg
+        )));
+    }
+
+    Ok(output.stdout)
+}
+
+/// Parse yt-dlp JSON output into the requested type.
+fn parse_json<T: serde::de::DeserializeOwned>(stdout: &[u8], what: &str) -> Result<T> {
+    let json_str = String::from_utf8_lossy(stdout);
+    serde_json::from_str(&json_str)
+        .map_err(|e| DownloaderError::Parse(format!("Failed to parse {}: {}", what, e)))
 }
 
 /// Video information structure
